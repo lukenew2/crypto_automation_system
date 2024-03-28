@@ -1,11 +1,14 @@
 # Prerequisites
 
-- AWS Account & AWS CLI (Follow this video to setup AWS correctly: https://www.youtube.com/watch?v=CjKhQoYeR4Q)
+You will need a AWS account with AWS CLI setup on your machine.  To do this correctly follow the following video:
+
+- https://www.youtube.com/watch?v=CjKhQoYeR4Q) (Note: you don’t have to spin up the EC2 instance)
 
 # Use Cases
 
 1. Automate multiple cryptocurrency TradingView strategies.
-2. Automate complex interactions between strategies (Buy side boost).
+2. Automate portfolio allocation between multiple strategies.
+3. Automate interactions between strategies.
 
 # Features
 
@@ -27,13 +30,39 @@ This application relies on TradingView to generate trading signals from a strate
 
 To execute trades, the lambda function connects to the exchange via API, gathering required account data, and places the order(s).
 
-![Untitled](img/trade_automation_system.png)
+![trade_automation_system](img/trade_automation_system.png)
 
 # Getting Started
+
+## Project setup
 
 To get started go ahead and clone the repository in your local workspace by running the following command:
 
 ```bash
+$ git clone https://github.com/lukenew2/crypto_auto_trading.git
+```
+
+Navigate terminal inside project directory and create a new virtual environment with python 3.10 and install both requirements.txt files.  
+
+- requirements.txt - Installs chalice and pytest used for application deployment and unit testing respectively.
+- crypto_bot/requirements.txt - Installs packages used within application.
+
+```bash
+$ python3.10 -m venv venv310
+$ . venv310/bin/activate
+$ pip install -r requirements.txt
+$ pip install -r crypto_bot/requirements.txt
+```
+
+## DynamoDB
+
+## Secrets Manager
+
+## Deployment
+
+## Testing
+
+## TradingView Web-hooks
 git clone https://github.com/lukenew2/crypto_auto_trading.git
 ```
 
