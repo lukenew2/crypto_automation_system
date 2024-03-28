@@ -5,8 +5,7 @@
 # Use Cases
 
 1. Automate multiple cryptocurrency TradingView strategies.
-2. Automate portfolio allocation between multiple strategies.
-3. Automate interactions between strategies.
+2. Automate complex interactions across differenct strategies.
 
 # Features
 
