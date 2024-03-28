@@ -1,0 +1,26 @@
+{
+    "BTCUSD": {
+        "symbol": "BTC/USD",
+        "currency": "BTC",
+        "percentage": 0.20,
+        "stop_loss": 0.03
+    },
+    "ETHUSD": {
+        "symbol": "ETH/USD",
+        "currency": "ETH",
+        "percentage": 0.25,
+        "stop_loss": 0.03
+    },
+    "ADAUSD": {
+        "symbol": "ADA/USD",
+        "currency": "ADA",
+        "percentage": 0,
+        "stop_loss": 0.20
+    },
+    "SOLUSD": {
+        "symbol": "SOL/USD",
+        "currency": "SOL",
+        "percentage": 0.53,
+        "stop_loss": 0.066
+    }
+}
