@@ -1,8 +1,6 @@
 # Prerequisites
 
-You will need a AWS account with AWS CLI setup on your machine.  To do this correctly follow the following video:
-
-- https://www.youtube.com/watch?v=CjKhQoYeR4Q) (Note: you don’t have to spin up the EC2 instance)
+* AWS account with AWS CLI setup on your machine.  To do this correctly follow this video: (https://www.youtube.com/watch?v=CjKhQoYeR4Q)
 
 # Use Cases
 
@@ -63,7 +61,3 @@ $ pip install -r crypto_bot/requirements.txt
 ## Testing
 
 ## TradingView Web-hooks
-git clone https://github.com/lukenew2/crypto_auto_trading.git
-```
-
-Then create a new virtual environment with python 3.10 and install both requirements.txt files.
