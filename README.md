@@ -39,7 +39,7 @@ To get started go ahead and clone the repository in your local workspace by runn
 $ git clone https://github.com/lukenew2/crypto_auto_trading.git
 ```
 
-Navigate terminal inside project directory and create a new virtual environment with python 3.10 and install both requirements.txt files.  
+Navigate your terminal inside the project directory and create a new virtual environment with python 3.10 and install both requirements.txt files.  
 
 - requirements.txt - Installs chalice and pytest used for application deployment and unit testing respectively.
 - crypto_bot/requirements.txt - Installs packages used within application.
@@ -51,7 +51,143 @@ $ pip install -r requirements.txt
 $ pip install -r crypto_bot/requirements.txt
 ```
 
+From here on forward I’m assuming that you have the AWS CLI set up properly so we can create our AWS resources from the command line.  
+
 ## DynamoDB
+
+First, we’ll create our database that will store incoming trade signals from TradingView.  Make note of the **table name.** This field can be changed to whatever you want to call your table.  For example, if you want to have separate tables for dev/prod you can add a -dev or -prod to the end of the name.
+
+In the terminal run if you’re on Linux/OS:
+
+```bash
+aws dynamodb create-table \
+    --table-name tradesignals \
+    --attribute-definitions \
+        AttributeName=ticker,AttributeType=S \
+        AttributeName=create_ts,AttributeType=S \
+    --key-schema \
+        AttributeName=ticker,KeyType=HASH \
+        AttributeName=create_ts,KeyType=RANGE \
+    --provisioned-throughput \
+        ReadCapacityUnits=5,WriteCapacityUnits=5 \
+    --table-class STANDARD
+```
+
+Or if you’re on Windows:
+
+```bash
+aws dynamodb create-table ^
+    --table-name tradesignals ^
+    --attribute-definitions ^
+        AttributeName=ticker,AttributeType=S ^
+        AttributeName=create_ts,AttributeType=S ^
+    --key-schema ^
+        AttributeName=ticker,KeyType=HASH ^
+        AttributeName=create_ts,KeyType=RANGE ^
+    --provisioned-throughput ^
+        ReadCapacityUnits=5,WriteCapacityUnits=5 ^
+    --table-class STANDARD
+```
+
+You should get an output that looks something like this:
+
+```json
+{
+    "TableDescription": {
+        "AttributeDefinitions": [
+            {
+                "AttributeName": "ticker",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "create_ts",
+                "AttributeType": "S"
+            }
+        ],
+        "TableName": "tradesignals",
+        "KeySchema": [
+            {
+                "AttributeName": "ticker",
+                "KeyType": "HASH"
+            },
+            {
+                "AttributeName": "create_ts",
+                "KeyType": "RANGE"
+            }
+        ],
+        "TableStatus": "CREATING",
+        "CreationDateTime": "2023-03-29T12:11:43.379000-04:00",
+        "ProvisionedThroughput": {
+            "NumberOfDecreasesToday": 0,
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+        },
+        "TableSizeBytes": 0,
+        "ItemCount": 0,
+        "TableArn": "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals",
+        "TableId": "60abf404-1839-4917-a89b-a8b0ab2a1b87",
+        "TableClassSummary": {
+            "TableClass": "STANDARD"
+        }
+    }
+}
+}
+```
+
+Take note of the field **TableArn** and ****copy the value to your clipboard.  Now, open the file crypto_automation_system/crypto_bot/.chalice/policy-prod.json and paste the TableArn value you copied inside the **DynamoDB** Resource field.  It should look something like this:
+
+```json
+      {
+        "Action": [
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query"
+        ],
+        "Resource": [
+          "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"
+        ],
+        "Effect": "Allow"
+      },
+```
+
+This gives our automation system permission to read/write to the database so whenever TradingView sends signals to our application we will be able to write the signals to the table.
+
+Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste the table ****name in the field **TABLE_NAME**. If you’re creating two tables one for dev/prod you would put the respective name in the respective stage.  Your file should look something like this:
+
+```json
+{
+  "version": "2.0",
+  "app_name": "crypto_bot",
+  "environment_variables": {
+    "EXCHANGE_NAME": "gemini"
+  },
+  "stages": {
+    "dev": {
+      "api_gateway_stage": "dev",
+      "autogen_policy": false,
+      "iam_policy_file": "policy-dev.json",
+      "environment_variables": {
+        "TABLE_NAME": "tradesignals",
+        "SECRET_NAME": "YOUR_SECRET_NAME"
+      }
+    },
+    "prod": {
+      "api_gateway_stage": "prod",
+      "autogen_policy": false,
+      "iam_policy_file": "policy-prod.json",
+      "environment_variables": {
+        "TABLE_NAME": "tradesignals",
+        "SECRET_NAME": "YOUR_SECRET_NAME"
+      }
+    }
+  }
+}
+```
+
+And boom!  You’ve created your DynamoDB table and given your application the required permissions and configurations.
 
 ## Secrets Manager
 
