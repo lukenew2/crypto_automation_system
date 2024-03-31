@@ -60,7 +60,7 @@ First, we’ll create our database that will store incoming trade signals from T
 If you’re on Linux/OS run the following in the terminal:
 
 ```bash
-aws dynamodb create-table \
+$ aws dynamodb create-table \
     --table-name tradesignals \
     --attribute-definitions \
         AttributeName=ticker,AttributeType=S \
@@ -76,7 +76,7 @@ aws dynamodb create-table \
 Or if you’re on Windows:
 
 ```bash
-aws dynamodb create-table ^
+$ aws dynamodb create-table ^
     --table-name tradesignals ^
     --attribute-definitions ^
         AttributeName=ticker,AttributeType=S ^
