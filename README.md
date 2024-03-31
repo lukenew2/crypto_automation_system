@@ -134,7 +134,7 @@ You should get an output that looks something like this:
 }
 ```
 
-Take note of the **TableArn** field and ****copy the value to your clipboard.  Now, open the file crypto_automation_system/crypto_bot/.chalice/policy-prod.json and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
+Take note of the **TableArn** field and copy the value to your clipboard.  Now, open the file crypto_automation_system/crypto_bot/.chalice/policy-prod.json and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
 
 ```json
       {
@@ -155,7 +155,7 @@ Take note of the **TableArn** field and ****copy the value to your clipboard.  N
 
 This gives our automation system permission to read/write to the database so whenever TradingView sends signals to our application we will be able to write the signals to the table.
 
-Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste the table ****name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
+Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste the table name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
 
 ```json
 {
@@ -187,7 +187,7 @@ Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste th
 }
 ```
 
-And boom!  You’ve created your DynamoDB table and given your application the required permissions and configurations.
+And boom!  We’ve created a DynamoDB table and given our application the required permissions and configurations.
 
 **Developer Note**: If you’re using the dev environment, you will also need to modify the policy-dev.json file in a similar way as we did the policy-prod.json file above.
 
@@ -270,7 +270,7 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
     ```
     
 
-And Boom!  We’ve created a secret to securely store our exchange’s API keys and gave our application sufficient permission to access the keys.  
+And Boom!  We've created a secret to securely store our exchange’s API keys and gave our application the required permissions and configurations.  
 
 **Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange so enable testing in our application without affecting our actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name and Secret ARN within our config.json and policy-dev.json files.
 
