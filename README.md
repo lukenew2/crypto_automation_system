@@ -133,7 +133,7 @@ You should get an output that looks something like this:
 }
 ```
 
-Take note of the **TableArn** field and ****copy the value to your clipboard.  Now, open the file *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
+Take note of the **TableArn** field and copy the value to your clipboard.  Now, open the file *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
 
 ```json
       {
@@ -154,7 +154,7 @@ Take note of the **TableArn** field and ****copy the value to your clipboard.  N
 
 This gives our automation system permission to read/write to the database so whenever TradingView sends signals to our application we will be able to write the signals to the table.
 
-Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste the table ****name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
+Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste the table name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
 
 ```json
 {
