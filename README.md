@@ -337,12 +337,28 @@ Deleting IAM Role crpyto_bot-prod
 
 Now that our application is deployed we can test it using the AWS console.
 
-1. In AWS search **Lambda** and in the left side bar choose **functions**.
-2. Click on the function **crypto_bot-prod-execute_trade_signals** and choose **Test.**
+1. In AWS search **Lambda** and in the left side bar choose **functions**.  You should see two functions:
+    1. **crypto_bot-prod** writes incoming trade signals to your database
+    2. **crypto_bot-prod-execute_trade_signals** executes trades signals stored in the database.
+2. Click on the function **crypto_bot-prod** and choose **Test**.
 3. Choose **create new event.**
-4. In the **Event JSON** editor paste the JSON below and replace
+4. In the **Event JSON** editor paste the JSON below
+
+```json
+{
+  "time": "2024-04-04T16:00:02Z",
+  "ticker": "BTCUSD",
+  "order_action": "buy",
+  "order_price": "67656.77"
+}
+```
+
+1. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
+2. Now go back and click on the function **crypto_bot-prod-execute_trade_signals** and choose **Test.**
+3. Choose **create new event.**
+4. n the **Event JSON** editor paste the JSON below and replace
     1. Region with your region.
-    2. The resources field with the Lambda Function’s ARN.
+    2. The resources field with your Lambda Function’s ARN.
 
 ```json
 {
@@ -363,3 +379,16 @@ Now that our application is deployed we can test it using the AWS console.
 1. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
 
 ## TradingView Web-hooks
+
+Last step is to configure our strategy in TradingView to send Webhook to our new REST API Endpoint.  Create new alert off your strategy and in the message paste the JSON below:
+
+```json
+{
+    "time": "{{timenow}}",
+    "ticker": "{{ticker}}",
+    "order_action": "{{strategy.order.action}}",
+    "order_price": "{{strategy.order.price}}"
+}
+```
+
+And then in the notifications select Webhook URL and paste your REST API’s endpoint.
