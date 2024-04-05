@@ -134,7 +134,7 @@ You should get an output that looks something like this:
 }
 ```
 
-Take note of the **TableArn** field and copy the value to your clipboard.  Now, open the file crypto_automation_system/crypto_bot/.chalice/policy-prod.json and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
+Take note of the **TableArn** field and ****copy the value to your clipboard.  Now, open the file *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
 
 ```json
       {
@@ -146,8 +146,8 @@ Take note of the **TableArn** field and copy the value to your clipboard.  Now, 
           "dynamodb:Scan",
           "dynamodb:Query"
         ],
-        "Resource": [
-          "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"
+        **"Resource"**: [
+          **"arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"**
         ],
         "Effect": "Allow"
       },
@@ -155,7 +155,7 @@ Take note of the **TableArn** field and copy the value to your clipboard.  Now, 
 
 This gives our automation system permission to read/write to the database so whenever TradingView sends signals to our application we will be able to write the signals to the table.
 
-Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste the table name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
+Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste the table ****name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
 
 ```json
 {
@@ -170,7 +170,7 @@ Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste th
       "autogen_policy": false,
       "iam_policy_file": "policy-dev.json",
       "environment_variables": {
-        "TABLE_NAME": "tradesignals",
+        **"TABLE_NAME": "tradesignals"**,
         "SECRET_NAME": "YOUR_SECRET_NAME"
       }
     },
@@ -179,7 +179,7 @@ Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste th
       "autogen_policy": false,
       "iam_policy_file": "policy-prod.json",
       "environment_variables": {
-        "TABLE_NAME": "tradesignals",
+        **"TABLE_NAME": "tradesignals"**,
         "SECRET_NAME": "YOUR_SECRET_NAME"
       }
     }
@@ -187,7 +187,7 @@ Next, open crypto_automation_system/crypto_bot/.chalice/config.json and paste th
 }
 ```
 
-And boom!  We’ve created a DynamoDB table and given our application the required permissions and configurations.
+And boom!  You’ve created your DynamoDB table and given your application the required permissions and configurations.
 
 **Developer Note**: If you’re using the dev environment, you will also need to modify the policy-dev.json file in a similar way as we did the policy-prod.json file above.
 
@@ -223,21 +223,21 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
     
     Secrets Manager returns to the list of secrets. If your new secret doesn't appear, choose the refresh button.
     
-6. Click on your newly created secret and copy the **Secret ARN** to your clipboard.  Open crypto_automation_system/crypto_bot/.chalice/policy-prod.json and paste the Secret ARN value inside the **Secrets Manager Resource field**.  It should look something like this:
+6. Click on your newly created secret and copy the **Secret ARN** to your clipboard.  Open *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the Secret ARN value inside the **Secrets Manager Resource field**.  It should look something like this:
     
     ```json
           {
             "Action": [
               "secretsmanager:GetSecretValue"
             ],
-            "Resource": [
-              "arn:aws:secretsmanager:us-east-1:111122223333:secret:secretname"
+            **"Resource"**: [
+              **"arn:aws:secretsmanager:us-east-1:111122223333:secret:secretname"**
             ],
             "Effect": "Allow"
           }
     ```
     
-7. Now, open crypto_automation_system/crypto_bot/.chalice/config.json and paste your secret name in the field **SECRET_NAME** within the prod stage.  It should look something like this:
+7. Now, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste your secret name in the field **SECRET_NAME** within the prod stage.  It should look something like this:
     
     ```json
     {
@@ -262,7 +262,7 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
           "iam_policy_file": "policy-prod.json",
           "environment_variables": {
             "TABLE_NAME": "tradesignals",
-            "SECRET_NAME": "secretname"
+            **"SECRET_NAME": "secretname"**
           }
         }
       }
@@ -270,12 +270,97 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
     ```
     
 
-And Boom!  We've created a secret to securely store our exchange’s API keys and gave our application the required permissions and configurations.  
+And Boom!  We’ve created a secret to securely store our exchange’s API keys and gave our application sufficient permission to access the keys.  
 
-**Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange so enable testing in our application without affecting our actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name and Secret ARN within our config.json and policy-dev.json files.
+**Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange to enable testing in our application without affecting our actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name within the dev stage of our config.json file and the Secret ARN in the policy-dev.json file.
 
 ## Deployment
 
+Open *crypto_automation_system/crypto_bot/chalicelib/strategy_config.json* and adjust how much of your portfolio you want to allocate to each strategy by adjusting the “**percentage**” field to your desired allocation.  (**Important**: the values must not add to more than 0.98 to ensure you have enough for fees).
+
+```json
+{
+    "BTCUSD": {
+        "symbol": "BTC/USD",
+        "currency": "BTC",
+        **"percentage": 0.20**,
+        "stop_loss": 0.03
+    },
+    "ETHUSD": {
+        "symbol": "ETH/USD",
+        "currency": "ETH",
+        **"percentage": 0.25**,
+        "stop_loss": 0.03
+    },
+    "ADAUSD": {
+        "symbol": "ADA/USD",
+        "currency": "ADA",
+        **"percentage": 0**,
+        "stop_loss": 0.20
+    },
+    "SOLUSD": {
+        "symbol": "SOL/USD",
+        "currency": "SOL",
+        **"percentage": 0.53**,
+        "stop_loss": 0.066
+    }
+}
+```
+
+To deploy, navigate your terminal inside the crypto_bot directory run `chalice deploy --stage prod`:
+
+```bash
+$ chalice deploy --stage prod
+Creating deployment package.
+Creating IAM role: crpyto_bot-prod
+Creating lambda function: crpyto_bot-prod
+Creating Rest API
+Resources deployed:
+  - Lambda ARN: arn:aws:lambda:us-west-2:12345:function:crpyto_bot-prod
+  - Rest API URL: https://abcd.execute-api.us-west-2.amazonaws.com/api/
+```
+
+You should have two functions:
+
+- **crypto_bot-prod** writes incoming trade signals to your database
+- **crypto_bot-prod-execute_trade_signals** executes trades signals stored in the database.
+
+If you need to delete your application for whatever reason you can run `chalice delete --stage prod`:
+
+```bash
+$ chalice delete --stage prod
+Deleting Rest API: abcd4kwyl4
+Deleting function aws:arn:lambda:region:123456789:crpyto_bot-prod
+Deleting IAM Role crpyto_bot-prod
+```
+
 ## Testing
+
+Now that our application is deployed we can test it using the AWS console.
+
+1. In AWS search **Lambda** and in the left side bar choose **functions**.
+2. Click on the function **crypto_bot-prod-execute_trade_signals** and choose **Test.**
+3. Choose **create new event.**
+4. In the **Event JSON** editor paste the JSON below and replace
+    1. Region with your region.
+    2. The resources field with the Lambda Function’s ARN.
+
+```json
+{
+  "id": "9dbbc12b-0e1a-4c90-9929-e5475c68e9e4",
+  "detail-type": "Scheduled Event",
+  "source": "aws.events",
+  "account": "123456789012",
+  "time": "2019-10-08T16:53:06Z",
+  **"region": "us-east-1"**,
+  **"resources": [
+    "arn:aws:lambda:us-east-1:111122223333:function:crypto_bot-prod-execute_trade_signals"
+  ]**,
+  "detail": {},
+  "version": ""
+}
+```
+
+1. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
 
 ## TradingView Web-hooks
