@@ -319,11 +319,6 @@ Resources deployed:
   - Rest API URL: https://abcd.execute-api.us-west-2.amazonaws.com/api/
 ```
 
-You should have two functions:
-
-- **crypto_bot-prod** writes incoming trade signals to your database
-- **crypto_bot-prod-execute_trade_signals** executes trades signals stored in the database.
-
 If you need to delete your application for whatever reason you can run `chalice delete --stage prod`:
 
 ```bash
