@@ -131,7 +131,6 @@ You should get an output that looks something like this:
         }
     }
 }
-}
 ```
 
 Take note of the **TableArn** field and ****copy the value to your clipboard.  Now, open the file *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
@@ -147,7 +146,7 @@ Take note of the **TableArn** field and ****copy the value to your clipboard.  N
           "dynamodb:Query"
         ],
         "**Resource**": [
-          "**arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals**"
+          "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"
         ],
         "Effect": "Allow"
       },
@@ -170,7 +169,7 @@ Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste 
       "autogen_policy": false,
       "iam_policy_file": "policy-dev.json",
       "environment_variables": {
-        "**TABLE_NAME**": "**tradesignals**",
+        "TABLE_NAME": "tradesignals",
         "SECRET_NAME": "YOUR_SECRET_NAME"
       }
     },
@@ -179,7 +178,7 @@ Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste 
       "autogen_policy": false,
       "iam_policy_file": "policy-prod.json",
       "environment_variables": {
-        "**TABLE_NAME**": "**tradesignals**",
+        "TABLE_NAME": "tradesignals",
         "SECRET_NAME": "YOUR_SECRET_NAME"
       }
     }
@@ -230,8 +229,8 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
             "Action": [
               "secretsmanager:GetSecretValue"
             ],
-            "**Resource**": [
-              "**arn:aws:secretsmanager:us-east-1:111122223333:secret:secretname**"
+            "Resource": [
+              "arn:aws:secretsmanager:us-east-1:111122223333:secret:secretname"
             ],
             "Effect": "Allow"
           }
@@ -262,7 +261,7 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
           "iam_policy_file": "policy-prod.json",
           "environment_variables": {
             "TABLE_NAME": "tradesignals",
-            "**SECRET_NAME**": "**secretname**"
+            "SECRET_NAME": "secretname"
           }
         }
       }
@@ -283,25 +282,25 @@ Open *crypto_automation_system/crypto_bot/chalicelib/strategy_config.json* and a
     "BTCUSD": {
         "symbol": "BTC/USD",
         "currency": "BTC",
-        "**percentage**": 0.20,
+        "percentage": 0.20,
         "stop_loss": 0.03
     },
     "ETHUSD": {
         "symbol": "ETH/USD",
         "currency": "ETH",
-        "**percentage**": 0.25,
+        "percentage": 0.25,
         "stop_loss": 0.03
     },
     "ADAUSD": {
         "symbol": "ADA/USD",
         "currency": "ADA",
-        "**percentage**": 0,
+        "percentage": 0,
         "stop_loss": 0.20
     },
     "SOLUSD": {
         "symbol": "SOL/USD",
         "currency": "SOL",
-        "**percentage**": 0.53,
+        "percentag*": 0.53,
         "stop_loss": 0.066
     }
 }
@@ -352,9 +351,9 @@ Now that our application is deployed we can test it using the AWS console.
   "source": "aws.events",
   "account": "123456789012",
   "time": "2019-10-08T16:53:06Z",
-  "**region**": "**us-east-1**",
-  "**resources**": [
-    "**arn:aws:lambda:us-east-1:111122223333:function:crypto_bot-prod-execute_trade_signals**"
+  "region": "us-east-1",
+  "resources": [
+    "arn:aws:lambda:us-east-1:111122223333:function:crypto_bot-prod-execute_trade_signals"
   ],
   "detail": {},
   "version": ""
