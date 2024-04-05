@@ -145,7 +145,7 @@ Take note of the **TableArn** field and ****copy the value to your clipboard.  N
           "dynamodb:Scan",
           "dynamodb:Query"
         ],
-        "**Resource**": [
+        "Resource": [
           "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"
         ],
         "Effect": "Allow"
