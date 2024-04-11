@@ -358,9 +358,7 @@ Now that your application is deployed you can test it using the AWS console.
 5. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
 6. Now go back and click on the function **crypto_bot-prod-execute_trade_signals** and choose **Test.**
 7. Choose **create new event.**
-8. In the **Event JSON** editor paste the JSON below and replace
-    1. Region with your region.
-    2. The resources field with your Lambda Function’s ARN.
+8. In the **Event JSON** editor paste the JSON below
 
 ```json
 {
