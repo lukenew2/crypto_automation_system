@@ -24,7 +24,7 @@ This trade automation system uses a serverless approach so we only pay for what 
 This application relies on TradingView to generate trading signals from a strategy (or multiple strategies) and sends them via web-hooks to a REST API (**AWS Chalice**).  The API has two functions:
 
 1. Processes incoming trade signals and stores them in a NoSQL database (**DynamoDB**). 
-    a. If the incoming trade signal is a **stop loss**, the application immediately executes a sell order instead of writing the trade to the database.
+    1. If the incoming trade signal is a **stop loss**, the application immediately executes a sell order instead of writing the trade to the database.
 2. Invokes a **lambda** function at a fixed interval that executes trades based on if there were any recent trading signals stored in the database. (*Note: the interval should be the same as the timeframe the trading strategies trade on.*)
 
 To execute trades, the lambda function connects to the exchange via API, gathering required account data, and places the order(s).
