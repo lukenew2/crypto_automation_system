@@ -336,7 +336,7 @@ Deleting IAM Role crpyto_bot-prod
 
 ## Testing
 
-Now that your application is deployed you can test it using the AWS console.
+Now that your application is deployed you can test it using the AWS console. (Note: this won't trigger any trades on your account since the time field is in the past.)
 
 1. In AWS search **Lambda** and in the left side bar choose **functions**.  You should see two functions:
     1. **crypto_bot-prod** writes incoming trade signals to your database
