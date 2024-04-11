@@ -1,6 +1,7 @@
 # Prerequisites
 
 - AWS account with AWS CLI setup on your machine. To do this correctly follow this video: (https://www.youtube.com/watch?v=CjKhQoYeR4Q)
+- TradingView strategy(s)
 
 # Use Cases
 
@@ -9,20 +10,21 @@
 
 # Features
 
-This trade automation system uses a serverless approach so you only pay for what you use.  And in our case this will always fall under AWS free tier.
+This trade automation system uses a serverless approach so we only pay for what we use.  And in our case this will always fall under AWS free tier.
 
 - **AWS Chalice** - A framework for quickly deploying serverless applications.  And since our application is invoked less than 1 million times a month it is **completely free**!  This is plenty enough for our application.
 - **DynamoDB** - A serverless database used to store incoming trade signals from TradingView as an intermediary step between receiving trade signals and execution.  As long as you stay under 25GB of storage, 25 Write Capacity Units (WCU), and 25 Read Capacity Units (RCU) this service is also **always free!**  This is enough to handle up to 200 million requests per month so don’t worry we will never come close.
-- **AWS Secrets Manager** (Optional) - This is the only paid service the system uses and if you’re going to pay for anything it should be security.  That being said, AWS charges $0.40 per secret per month and you will only need one secret that stores your exchange’s API keys.   The system is designed using Secrets Manager so I’ll leave it to the reader to reconfigure it using another storage method if they desire.
+- **AWS Secrets Manager** (Optional) - This is the only paid service the system uses and if we’re going to pay for anything it should be security.  That being said, AWS charges $0.40 per secret per month and we will only need one secret that stores our exchange’s API keys.   The system is designed using Secrets Manager so I’ll leave it to the reader to reconfigure it using another storage method if they desire.
 - **CCXT** - A library used to connect and trade on cryptocurrency exchanges in a unified format.  This allows us to easily extend the automation system to different exchanges.  Current exchange support:
     - Gemini
-- **CI/CD** - Separation of production and development environments allows us to continually integrate and develop the system without affecting what’s deployed to production.
+- **CI/CD** - Separation of production and development environments allows us to continually integrate and develop the system without affecting what’s deployed in production.
 
 # Application Design
 
 This application relies on TradingView to generate trading signals from a strategy (or multiple strategies) and sends them via web-hooks to a REST API (**AWS Chalice**).  The API has two functions:
 
 1. Processes incoming trade signals and stores them in a NoSQL database (**DynamoDB**). 
+    a. If the incoming trade signal is a **stop loss**, the application immediately executes a sell order instead of writing the trade to the database.
 2. Invokes a **lambda** function at a fixed interval that executes trades based on if there were any recent trading signals stored in the database. (*Note: the interval should be the same as the timeframe the trading strategies trade on.*)
 
 To execute trades, the lambda function connects to the exchange via API, gathering required account data, and places the order(s).
@@ -51,11 +53,11 @@ $ pip install -r requirements.txt
 $ pip install -r crypto_bot/requirements.txt
 ```
 
-From here on forward I’m assuming that you have the AWS CLI set up properly so we can create our AWS resources from the command line.  
+From here on forward I’m assuming that you have the AWS CLI set up properly so we can create your AWS resources from the command line.  
 
 ## DynamoDB
 
-First, we’ll create our database that will store incoming trade signals from TradingView.  Make note of the **table name.** This field can be changed to whatever you want.  For example, if you want to have separate tables for dev/prod you can add a -dev or -prod to the end of the name.
+First, you’ll create your database that will store incoming trade signals from TradingView.  Make note of the **table name.** This field can be changed to whatever you want.  For example, if you want to have separate tables for dev/prod you can add a -dev or -prod to the end of the name.
 
 If you’re on Linux/OS run the following in the terminal:
 
@@ -152,7 +154,7 @@ Take note of the **TableArn** field and copy the value to your clipboard.  Now, 
       },
 ```
 
-This gives our automation system permission to read/write to the database so whenever TradingView sends signals to our application we will be able to write the signals to the table.
+This gives your automation system permission to read/write to the database so whenever TradingView sends signals to your application you will be able to write the signals to the table.
 
 Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste the table name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
 
@@ -169,8 +171,9 @@ Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste 
       "autogen_policy": false,
       "iam_policy_file": "policy-dev.json",
       "environment_variables": {
-        "TABLE_NAME": "tradesignals",
-        "SECRET_NAME": "YOUR_SECRET_NAME"
+        "TABLE_NAME": "tradesignals-dev",
+        "SECRET_NAME": "YOUR-API-SECRET",
+        "SANDBOX": "True"
       }
     },
     "prod": {
@@ -178,8 +181,9 @@ Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste 
       "autogen_policy": false,
       "iam_policy_file": "policy-prod.json",
       "environment_variables": {
-        "TABLE_NAME": "tradesignals",
-        "SECRET_NAME": "YOUR_SECRET_NAME"
+        "TABLE_NAME": "tradesignals-prod",
+        "SECRET_NAME": "YOUR-API-SECRET",
+        "SANDBOX": "False"
       }
     }
   }
@@ -192,13 +196,13 @@ And boom!  You’ve created your DynamoDB table and given your application the r
 
 ## Generate API Keys
 
-Next, we need to give our application access to our trading account.  We do this by generating API keys on our exchange, storing those keys in AWS Secrets Manager, and giving our application sufficient permission to retrieve said keys.   
+Next, you need to give your application access to your trading account.  You do this by generating API keys on your exchange, storing those keys in AWS Secrets Manager, and giving your application sufficient permission to retrieve said keys.   
 
 Generating API keys is different for every exchange.  For instructions, google how to generate API keys on your exchange.  **Important** - your keys only need sufficient permissions to view account balances and create orders.  It is best practice to give your keys minimum permissions required.  Once you have your keys store them in a safe place.  
 
 ## Secrets Manager
 
-Now that we have our API keys for our exchange, we’ll securely store them in AWS Secrets Manager and give our application permission to retrieve them.  
+Now that you have your API keys for your exchange, You’ll securely store them in AWS Secrets Manager and give your application permission to retrieve them.  
 
 1. Open the Secrets Manager console at  https://console.aws.amazon.com/secretsmanager/
 2. Choose **Store a new secret**.
@@ -252,7 +256,8 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
           "iam_policy_file": "policy-dev.json",
           "environment_variables": {
             "TABLE_NAME": "tradesignals",
-            "SECRET_NAME": "YOUR_SECRET_NAME"
+            "SECRET_NAME": "secretname-dev",
+            "SANDBOX": "True"
           }
         },
         "prod": {
@@ -261,7 +266,8 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
           "iam_policy_file": "policy-prod.json",
           "environment_variables": {
             "TABLE_NAME": "tradesignals",
-            "SECRET_NAME": "secretname"
+            "SECRET_NAME": "secretname-prod",
+            "SANDBOX": "False"
           }
         }
       }
@@ -269,9 +275,9 @@ Now that we have our API keys for our exchange, we’ll securely store them in A
     ```
     
 
-And Boom!  We’ve created a secret to securely store our exchange’s API keys and gave our application sufficient permission to access the keys.  
+And Kaboom!  You’ve created a secret to securely store your exchange’s API keys and gave your application sufficient permissions to access the keys.  
 
-**Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange to enable testing in our application without affecting our actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name within the dev stage of our config.json file and the Secret ARN in the policy-dev.json file.
+**Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange to enable testing in your application without affecting your actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name within the dev stage of our config.json file and the Secret ARN in the policy-dev.json file.
 
 ## Deployment
 
@@ -318,9 +324,9 @@ Resources deployed:
   - Lambda ARN: arn:aws:lambda:us-west-2:12345:function:crpyto_bot-prod
   - Rest API URL: https://abcd.execute-api.us-west-2.amazonaws.com/api/
 ```
+Make note of the Rest API URL.  You will need it to setup TradingView to send alerts to your application.
 
 If you need to delete your application for whatever reason you can run `chalice delete --stage prod`:
-
 ```bash
 $ chalice delete --stage prod
 Deleting Rest API: abcd4kwyl4
@@ -330,7 +336,7 @@ Deleting IAM Role crpyto_bot-prod
 
 ## Testing
 
-Now that our application is deployed we can test it using the AWS console.
+Now that your application is deployed you can test it using the AWS console.
 
 1. In AWS search **Lambda** and in the left side bar choose **functions**.  You should see two functions:
     1. **crypto_bot-prod** writes incoming trade signals to your database
@@ -344,7 +350,8 @@ Now that our application is deployed we can test it using the AWS console.
   "time": "2024-04-04T16:00:02Z",
   "ticker": "BTCUSD",
   "order_action": "buy",
-  "order_price": "67656.77"
+  "order_price": "67656.77",
+  "order_comment": "long"
 }
 ```
 
@@ -375,15 +382,16 @@ Now that our application is deployed we can test it using the AWS console.
 
 ## TradingView Web-hooks
 
-Last step is to configure our strategy in TradingView to send Webhook to our new REST API Endpoint.  Create new alert off your strategy and in the message paste the JSON below:
+Last step is to configure your strategy in TradingView to send alerts to your new REST API Endpoint.  Create a new alert off your strategy and in the message paste the JSON below:
 
 ```json
 {
     "time": "{{timenow}}",
     "ticker": "{{ticker}}",
     "order_action": "{{strategy.order.action}}",
-    "order_price": "{{strategy.order.price}}"
+    "order_price": "{{strategy.order.price}}",
+    "order_comment": "{{strategy.order.comment}}"
 }
 ```
 
-And then in the notifications select Webhook URL and paste your REST API’s endpoint.
+And then in the notifications select Webhook URL and paste your REST API’s endpoint with receive_trade_signals after the slash.  Should look something like this https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals.
