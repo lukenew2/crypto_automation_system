@@ -395,5 +395,5 @@ Last step is to configure your strategy in TradingView to send alerts to your ne
 And then in the notifications select Webhook URL and paste your REST API’s endpoint with receive_trade_signals after the slash.  It should look something like this:
 
 ```
-https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals.
+https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals
 ```
