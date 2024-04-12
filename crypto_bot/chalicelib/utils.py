@@ -1,6 +1,6 @@
 import json
 import boto3
-import ccxt
+import os
 from botocore.exceptions import ClientError
 from decimal import Decimal
 from datetime import datetime, timezone
@@ -118,6 +118,19 @@ class DynamoDBManager:
             else:
                 raise e
             
+def get_env_var(name: str, default_value: bool | None = None) -> bool:
+    """Gets environment variable and returns as boolean."""
+    true_ = ("true", "True")
+    false_ = ("false", "False")  
+    value: str | None = os.environ.get(name, None)
+    if value is None:
+        if default_value is None:
+            raise ValueError(f'Variable `{name}` not set!')
+        else:
+            value = str(default_value)
+    if value.lower() not in true_ + false_:
+        raise ValueError(f'Invalid value `{value}` for variable `{name}`')
+    return value in true_
 
 def load_strategy_config():
     """Load strategy configuration from file."""

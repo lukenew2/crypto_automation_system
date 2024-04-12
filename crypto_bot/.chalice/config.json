@@ -11,7 +11,8 @@
       "iam_policy_file": "policy-dev.json",
       "environment_variables": {
         "TABLE_NAME": "YOUR_TABLE_NAME",
-        "SECRET_NAME": "YOUR_SECRET_NAME"
+        "SECRET_NAME": "YOUR_SECRET_NAME",
+        "SANDBOX": "True"
       }
     },
     "prod": {
@@ -20,7 +21,8 @@
       "iam_policy_file": "policy-prod.json",
       "environment_variables": {
         "TABLE_NAME": "YOUR_TABLE_NAME",
-        "SECRET_NAME": "YOUR_SECRET_NAME"
+        "SECRET_NAME": "YOUR_SECRET_NAME",
+        "SANDBOX": "False"
       }
     }
   }

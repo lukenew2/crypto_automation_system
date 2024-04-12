@@ -1,4 +1,5 @@
 from typing import List
+from decimal import Decimal, ROUND_HALF_UP
 from chalicelib.exchanges import gemini
 
 class Exchange:
@@ -25,7 +26,7 @@ class Exchange:
         return self.client.get_total_usd()
     
 
-def multi_strategy_allocation(exchange: Exchange, trades: List) -> List:
+def multi_strategy_allocation(exchange: Exchange, trades: List[dict], increment_pct: float=0) -> List:
     """
     Allocates percentage of portfolio based on multiple strategies.
 
@@ -36,6 +37,7 @@ def multi_strategy_allocation(exchange: Exchange, trades: List) -> List:
             - currency: Currency of the asset.
             - order_action: Action to perform ("buy" or "sell").
             - percentage: Percentage of total allocation for "buy" orders.
+        increment_pct: Percentage to increment order price by.  Defaults to 0.
 
     Returns:
         List of orders placed on the exchange.
@@ -44,24 +46,64 @@ def multi_strategy_allocation(exchange: Exchange, trades: List) -> List:
         raise ValueError("Trades list is empty.")
 
     total_usd = exchange.get_total_usd()
-
     orders = []
+
     for trade in trades:
+        
         symbol = trade.get("symbol")
         currency = trade.get("currency")
         order_action = trade.get("order_action")
+        percentage = trade.get("percentage")
+
+        if order_action not in ("buy", "sell"):
+            raise ValueError(f"Invalid order action: {order_action}")
+        
+        last_price = exchange.get_last_price(symbol)
+        price_adjustment = Decimal(str(increment_pct)).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+        
         if order_action == "sell":
             sell_amount = exchange.get_total_currency(currency)
-            order_price = exchange.get_last_price(symbol)
+            order_price = last_price - (last_price * price_adjustment)
             order = exchange.create_limit_order(symbol, order_action, sell_amount, order_price)
+
         elif order_action == "buy":
-            allocated_usd = total_usd * trade.get("percentage")
-            order_price = exchange.get_last_price(symbol)
+            allocated_usd = total_usd * percentage
+            order_price = last_price + (last_price * price_adjustment)
             position_size = allocated_usd / order_price
             order = exchange.create_limit_order(symbol, order_action, position_size, order_price)
-        else:
-            raise ValueError(f"Invalid order action: {order_action}")
         
         orders.append(order)
 
     return orders
+
+def execute_long_stop(exchange: Exchange, trade: dict, increment_pct: float=0) -> dict:
+    """
+    Executes long stop trading signal from TradingView strategy.
+
+    Args:
+        exchange (Exchange): An instance of the exchange.
+        trades: A dictionary containing keys:
+            - symbol: Symbol of the asset.
+            - currency: Currency of the asset.
+            - order_action: Action to perform ("buy" or "sell").
+            - percentage: Percentage of total allocation for "buy" orders.
+        increment_pct: Percentage to increment order price by.  Defaults to 0.
+
+    Returns:
+        JSON representing order placed.
+    """
+    symbol = trade.get("symbol")
+    currency = trade.get("currency")
+    order_action = trade.get("order_action")
+    
+    if order_action != "sell":
+        raise ValueError(f"Invalid order action for long stop: {order_action}")
+
+    last_price = exchange.get_last_price(symbol)
+    price_adjustment = Decimal(str(increment_pct)).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+    
+    sell_amount = exchange.get_total_currency(currency)
+    order_price = last_price - (last_price * price_adjustment)
+    order = exchange.create_limit_order(symbol, order_action, sell_amount, order_price)
+
+    return order

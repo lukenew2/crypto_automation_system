@@ -1,3 +1,5 @@
+# import sys
+# sys.path.append("/Users/luken2/github/crypto_bot/crypto_bot") 
 import time
 import logging
 import ccxt
@@ -284,3 +286,7 @@ class GeminiClient:
             except Exception as e:
                 logging.error(f"An unexpected error occurred: {e}")
                 raise e
+            
+# exchange = GeminiClient()
+# exchange.connect(secret_name="gemini-sandbox-api-key", sandbox=True)
+# print(exchange.get_last_price("ETH/USD"))
