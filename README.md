@@ -336,14 +336,20 @@ Deleting IAM Role crpyto_bot-prod
 
 ## Testing
 
-Now that your application is deployed you can test it using the AWS console. (*Note: this won't trigger any trades on your account since the time field is in the past.*)
+In this part, you will test your two deployed Lambda functions:
 
-1. In AWS search **Lambda** and in the left side bar choose **functions**.  You should see two functions:
-    1. **crypto_bot-prod** writes incoming trade signals to your database
-    2. **crypto_bot-prod-execute_trade_signals** executes trades signals stored in the database.
-2. Click on the function **crypto_bot-prod** and choose **Test**.
-3. Choose **create new event.**
-4. In the **Event JSON** editor paste the JSON below
+1. **crypto_bot-prod**: A REST API with a single route, **receive_trade_signals**.
+2. **crypto_bot-prod-execute_trade_signals**: Executes trade signals stored in the database.
+
+### Testing the REST API
+
+To test the REST API, follow these steps:
+
+1. **Prepare the Testing Tool**: Use a tool like Insomnia or Postman to send HTTPS requests to your endpoint. Set the request type to POST.
+  
+2. **Copy the Endpoint URL**: Your endpoint URL should look similar to `https://abcd.execute-api.us-west-2.amazonaws.com/api/receive_trade_signals`. Copy this URL and paste it into your testing tool.
+
+3. **Create a JSON Body**: Copy and paste the following JSON into your request's body:
 
 ```json
 {
@@ -355,10 +361,20 @@ Now that your application is deployed you can test it using the AWS console. (*N
 }
 ```
 
-5. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
-6. Now go back and click on the function **crypto_bot-prod-execute_trade_signals** and choose **Test.**
-7. Choose **create new event.**
-8. In the **Event JSON** editor paste the JSON below
+4. **Send the Request**: Send the POST request to the endpoint.
+
+5. **Check CloudWatch Logs**: In the AWS Management Console, go to CloudWatch Logs and select the **crypto-bot-prod** log group. Look for a log detailing the process of writing the trade signal to your database.
+
+### Testing the Execution of Trade Signals
+
+To test the function that executes trade signals, follow these steps:
+
+1. **Navigate to Lambda Functions**: In the AWS Management Console, search for **Lambda**. Then, in the left sidebar, select **Functions**. You should see two functions:
+    - **crypto_bot-prod**: Writes incoming trade signals to your database.
+    - **crypto_bot-prod-execute_trade_signals**: Executes trade signals stored in the database.
+2. **Choose the Function**: Select the **crypto_bot-prod-execute_trade_signals** function and then choose **Test**.
+3. **Create a New Event**: Select **Create new event**.
+4. **Input Event JSON**: In the **Event JSON** editor, paste the following JSON:
 
 ```json
 {
@@ -376,7 +392,8 @@ Now that your application is deployed you can test it using the AWS console. (*N
 }
 ```
 
-9. **Choose Test.**  Wait a few seconds and you should see a green check for **successful execution.**
+5. **Run the Test**: Choose **Test** to execute the function. After a few seconds, a green checkmark should appear, indicating successful execution.
+6. **Check CloudWatch Logs**: For more details about the test, go to CloudWatch Logs and look at the logs for the function.
 
 ## TradingView Web-hooks
 
