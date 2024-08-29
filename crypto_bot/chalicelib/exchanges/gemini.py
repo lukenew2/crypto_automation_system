@@ -1,5 +1,4 @@
 import sys
-sys.path.append("/Users/luken2/github/crypto_bot/crypto_bot") 
 import time
 import logging
 import ccxt
@@ -370,14 +369,3 @@ class GeminiClient:
             return 0
 
         return trade_value_usd * round(amount_owned / amount_bought, 2)
-                
-            
-# exchange = GeminiClient()
-# exchange.connect(secret_name="gemini-trader-api", sandbox=False)
-# # exchange.connect(secret_name="gemini-sandbox-api-key", sandbox=True)
-# print(exchange.get_account_allocation())
-# trades = exchange.get_last_trade("SOL/USD")
-# print(exchange.get_trade_value_usd(trades))
-# trades = exchange.client.fetch_my_trades("ETH/USD")
-# for trade in trades:
-#     print(trade)
