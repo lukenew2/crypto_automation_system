@@ -1,10 +1,10 @@
-# import sys
-# sys.path.append("/Users/luken2/github/crypto_bot/crypto_bot") 
+import sys
+sys.path.append("/Users/luken2/github/crypto_bot/crypto_bot") 
 import time
 import logging
 import ccxt
 from decimal import Decimal
-from typing import Union
+from typing import Union, Dict, List
 from chalicelib import utils, trade_processing
 
 logger = logging.getLogger("app")
@@ -65,7 +65,6 @@ class GeminiClient:
         Places a limit buy order on the Gemini exchange.
 
         Args:
-            exchange: The exchange object from ccxt.
             symbol: The symbol representing the trading pair.
             side: 'buy' or 'sell'.
             amount: Amount of currency to buy
@@ -105,8 +104,8 @@ class GeminiClient:
 
         logging.error(f"Failed to place sell order after {max_retries} retries.")
         return None
-        
-    def get_total_currency(self, currency: str, max_retries: int=3) -> Union[float, None]:
+            
+    def get_total_currency(self, currency: str, max_retries: int=3) -> Union[Decimal, None]:
         """
         Get the total amount of a given currency owned by the account.
 
@@ -198,19 +197,18 @@ class GeminiClient:
         logger.error(f"Failed to fetch ticker after {max_retries} retries.")
         return None, None
 
-    def get_last_price(self, symbol: str, max_retries: int=3) -> tuple:
+    def get_last_price(self, symbol: str, max_retries: int=3) -> Decimal:
         """
-        Get bid ask spread of symbol on exchange.
+        Get last price of symbol on exchange.
 
         Args:
-            exchange: The exchange object from ccxt.
             symbol: Uppercase string literal name of a pair of traded currencies 
             with a slash in between.
             max_retries (optional): Maximum number of retries. Defaults to 3.
 
         Returns:
-            Tuple containing current bid and ask price of symbol on exchange.
-            If fetching the ticker fails, returns None for both bid and ask.
+            Last price of symbol on exchange as Decimal object.
+            If fetching the ticker fails, returns None.
         """
         retries = 0
         while retries < max_retries:
@@ -244,35 +242,93 @@ class GeminiClient:
         # If retry limit is reached
         logger.error(f"Failed to fetch ticker after {max_retries} retries.")
         return None
-
-    def get_total_usd(self, max_retries: int=3) -> float:
+    
+    def get_account_allocation(self, max_retries: int=3) -> Dict:
         """
-        Get total USD value of account before any unrealized trades.
-
-        This function allows us to correctly allocate funds to a given strategy.
+        Gets the cost in usd at time of purchase for each active strategy in the account.
 
         Args:
-            exchange: Gemini exchange object from ccxt.
-        
-        Returns
-            Total funds of account in USD.
+            max_retries (optional): Maximum number of retries. Defaults to 3.
+
+        Returns:
+            Dict: A dictionary containing the allocation of the account.
         """
         retries = 0
         while retries < max_retries:
             try:
                 balance = self.client.fetch_balance()
-                total_funds_usd = balance.get("total").get("USD")
+                available_funds_usd = balance.get("free").get("USD")
                 active_configs = trade_processing.get_active_strategy_configs()
+                allocation_dict = dict()
+                allocation_dict["USD"] = available_funds_usd
                 for config in active_configs:
                     symbol = config.get("symbol")
-                    trades = self.client.fetch_my_trades(symbol)
-                    for trade in reversed(trades):
-                        if trade.get("side") == "sell":
-                            break
-                        else:
-                            trade_value_usd = trade.get("cost") + trade.get("fee").get("cost")
-                            total_funds_usd += trade_value_usd
-                return Decimal(str(total_funds_usd))
+                    currency = config.get("currency")
+                    trades = self.get_most_recent_trade(symbol)
+                    if trades:
+                        trade_value_usd = self.get_trade_value_usd(trades)
+                        allocation_dict[currency] = trade_value_usd
+                    else:
+                        allocation_dict[currency] = 0
+
+                return allocation_dict
+
+            except ccxt.NetworkError as e:
+                logging.error(f"Network error while fetching ticker: {e}")
+                time.sleep(3)
+                retries += 1
+
+            except ccxt.ExchangeError as e:
+                logging.error(f"Exchange error while fetching ticker: {e}")
+                return None
+            
+            except Exception as e:
+                logging.error(f"An unexpected error occurred: {e}")
+                raise e
+
+    def get_total_usd(self) -> float:
+        """
+        Get total USD value of account before any unrealized trades.
+
+        This function allows us to correctly allocate funds to a given strategy.
+        
+        Returns:
+            Total funds of account in USD.
+        """
+        allocation_dict = self.get_account_allocation()
+        return Decimal(str(sum(allocation_dict.values())))
+            
+    def get_most_recent_trade(self, symbol: str, max_retries: int=3) -> List[Dict]:
+        """
+        Get the most recent open or closed trade of given symbol.
+
+        A trade starts with a buy and ends with a sell that sets balance to 0.
+        
+        Args:
+            symbol: Uppercase string literal name of a pair of traded currencies
+            max_retries (optional): Maximum number of retries. Defaults to 3.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing the order fills related to the last trade.
+        """
+        retries = 0
+        while retries < max_retries:
+            try:
+                trades = self.client.fetch_my_trades(symbol)
+                if trades:
+                    prev_trade_side = None
+                    for i, trade in enumerate(reversed(trades)):
+                        side = trade.get("side")
+                        if (prev_trade_side == "buy") & (side == "sell"):
+                            return trades[-i:]
+                        elif side == "buy":
+                            prev_trade_side = "buy"
+                        elif side == "sell":
+                            prev_trade_side = "sell"
+                    else:
+                        return trades
+                else:
+                    return []
             
             except ccxt.NetworkError as e:
                 logging.error(f"Network error while fetching ticker: {e}")
@@ -281,12 +337,47 @@ class GeminiClient:
 
             except ccxt.ExchangeError as e:
                 logging.error(f"Exchange error while fetching ticker: {e}")
-                return None, None
+                raise e
             
             except Exception as e:
                 logging.error(f"An unexpected error occurred: {e}")
                 raise e
             
+    def get_trade_value_usd(self, trades: List[Dict]) -> float:
+        """
+        Calculate proportion of original purchase value of trade in USD that is still owned.
+
+        Args:
+            trades: A list of order fills for a trade.
+
+        Returns:
+            float: Original purchase price of trade in USD that is still owned.
+        """
+        trade_value_usd = 0
+        amount_owned = 0
+        amount_bought = 0
+
+        for trade in trades:
+            amount = trade.get("amount", 0)
+            if trade.get("side") == "buy":
+                amount_owned += amount
+                amount_bought += amount
+                trade_value_usd += trade.get("cost", 0)
+            elif trade.get("side") == "sell":
+                amount_owned -= amount
+
+        if amount_bought == 0:
+            return 0
+
+        return trade_value_usd * round(amount_owned / amount_bought, 2)
+                
+            
 # exchange = GeminiClient()
-# exchange.connect(secret_name="gemini-sandbox-api-key", sandbox=True)
-# print(exchange.get_last_price("ETH/USD"))
+# exchange.connect(secret_name="gemini-trader-api", sandbox=False)
+# # exchange.connect(secret_name="gemini-sandbox-api-key", sandbox=True)
+# print(exchange.get_account_allocation())
+# trades = exchange.get_last_trade("SOL/USD")
+# print(exchange.get_trade_value_usd(trades))
+# trades = exchange.client.fetch_my_trades("ETH/USD")
+# for trade in trades:
+#     print(trade)

@@ -1,6 +1,7 @@
 import json
 import boto3
 import os
+from typing import List
 from botocore.exceptions import ClientError
 from decimal import Decimal
 from datetime import datetime, timezone
@@ -172,3 +173,41 @@ def get_utc_now_rounded():
     """Gets current time in utc rounded down to the hour."""
     utcnow = datetime.now(timezone.utc)
     return utcnow.replace(minute=0, second=0, microsecond=0)
+
+def get_symbol_from_currency(currency):
+    """Get the symbol from currency defined in strategy_config.json"""
+    strategy_config_dict = get_strategy_config()
+    for key, value in strategy_config_dict.items():
+        if value.get("currency") == currency:
+            return value.get("symbol")
+        
+def get_currency_from_symbol(symbol):
+    """Get the currency from symbol defined in strategy_config.json"""
+    strategy_config_dict = get_strategy_config()
+    for key, value in strategy_config_dict.items():
+        if value.get("symbol") == symbol:
+            return value.get("currency")
+        
+def get_percentage_from_symbol(symbol):
+    """Get the percentage from symbol defined in strategy_config.json"""
+    strategy_config_dict = get_strategy_config()
+    for key, value in strategy_config_dict.items():
+        if value.get("symbol") == symbol:
+            return value.get("percentage", 0)
+        
+def get_trade_precedence(trade_symbols: List) -> str:
+    """
+    Determines which trade out of the trade symbols has the highest allocation percentage.
+
+    The symbol with trade precedence holds the otherwise available cash in the position.
+
+    Args:
+        trade_symbols (List): List of incoming and current trade symbols.
+        strategy_config (dict): Configuration settings for each trading strategy.
+
+    Returns:
+        Symbol with the highest allocation percentage.
+    """
+    trade_precedence = max(trade_symbols, key=get_percentage_from_symbol, default=None)
+
+    return trade_precedence

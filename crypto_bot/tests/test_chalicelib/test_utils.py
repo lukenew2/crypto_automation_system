@@ -1,6 +1,7 @@
 import pytest
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
-from chalicelib.utils import DynamoDBManager
+from chalicelib.utils import DynamoDBManager, get_trade_precedence
 
 @pytest.fixture
 def mock_boto3_resource():
@@ -30,3 +31,9 @@ def test_get_table(mock_boto3_resource, dynamo_manager):
 
     # Assert that the returned table is correct
     assert table == mock_client.Table.return_value
+
+def test_get_trade_precedence():
+    trade_symbols = ["ETH/USD", "BTC/USD"]
+    result = get_trade_precedence(trade_symbols)
+
+    assert result == "ETH/USD"
