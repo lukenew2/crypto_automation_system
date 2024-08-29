@@ -1,35 +1,122 @@
-# Prerequisites
+# Crypto Automation System
+Welcome to my trading automation system! Designed specifically for traders with strategies developed in TradingView, this system streamlines the transition from manual to automated execution. By eliminating emotional bias, ensuring consistent execution, and maintaining constant connectivity, our system empowers you to optimize your trading strategies with greater efficiency and confidence—all while keeping your private keys secure and minimizing costs to less than $1 a month.
 
-- AWS account with AWS CLI setup on your machine. To do this correctly follow this video: (https://www.youtube.com/watch?v=CjKhQoYeR4Q)
-- TradingView strategy(s)
+# System Design
+So, how does it work? Our system seamlessly integrates four key components: TradingView, AWS Chalice, AWS DynamoDB, and AWS Secrets Manager.
 
-# Use Cases
+## TradingView
+- **Function**: Hosts your custom trading strategies, defining when to buy or sell an asset and specifying the trading timeframe. All strategies must operate on the same timeframe.
+- **Alerts**: Sends custom payloads via webhooks to designated endpoints whenever an alert is triggered.
 
-1. Automate multiple cryptocurrency TradingView strategies.
-2. Automate portfolio allocation across different TradingView strategies.
+## AWS Chalice
+- **Function**: Simplifies the development and deployment of our *REST API* and *Lambda Function*, handling the logic for processing and executing trade signals.
+- **REST API**: Receives incoming trade signals from TradingView and stores them in DynamoDB. If the signal is a stop loss, the trade is executed immediately; otherwise, it is saved for further processing.
+- **Lambda Function**: Executes trades based on signals stored in DynamoDB. It is triggered on the same timeframe as your TradingView strategy. For instance, if your strategy operates on an 8-hour timeframe, the Lambda function is invoked every 8 hours, 1 minute after the hour, to check for and act upon any trade signals.
+- **Pricing**: Completely free; we stay comfortably within the AWS free tier limits, which allows for up to 1 million invocations per month at no cost.
 
-# Features
+## AWS DynamoDB
+- **Function**: Serves as an intermediary database to store processed trades, enabling precise account allocation and advanced trade execution strategies, such as buy-side boost. Without this intermediary, we would be restricted to processing trade signals sequentially, which becomes a bottleneck when multiple signals occur simultaneously.
+- **Pricing**: Completely free; we comfortably operate within DynamoDB's free tier limits, which provide up to 25 WCUs and RCUs per month at no cost.
 
-This trade automation system uses a serverless approach so we only pay for what we use.  And in our case this will always fall under AWS free tier.
-
-- **AWS Chalice** - A framework for quickly deploying serverless applications.  And since our application is invoked less than 1 million times a month it is **completely free**!  This is plenty enough for our application.
-- **DynamoDB** - A serverless database used to store incoming trade signals from TradingView as an intermediary step between receiving trade signals and execution.  As long as you stay under 25GB of storage, 25 Write Capacity Units (WCU), and 25 Read Capacity Units (RCU) this service is also **always free!**  This is enough to handle up to 200 million requests per month so don’t worry we will never come close.
-- **AWS Secrets Manager** (Optional) - This is the only paid service the system uses and if we’re going to pay for anything it should be security.  That being said, AWS charges $0.40 per secret per month and we will only need one secret that stores our exchange’s API keys.   The system is designed using Secrets Manager so I’ll leave it to the reader to reconfigure it using another storage method if they desire.
-- **CCXT** - A library used to connect and trade on cryptocurrency exchanges in a unified format.  This allows us to easily extend the automation system to different exchanges.  Current exchange support:
-    - Gemini
-- **CI/CD** - Separation of production and development environments allows us to continually integrate and develop the system without affecting what’s deployed in production.
-
-# Application Design
-
-This application relies on TradingView to generate trading signals from a strategy (or multiple strategies) and sends them via web-hooks to a REST API (**AWS Chalice**).  The API has two functions:
-
-1. Processes incoming trade signals and stores them in a NoSQL database (**DynamoDB**). 
-    1. If the incoming trade signal is a **stop loss**, the application immediately executes a sell order instead of writing the trade to the database.
-2. Invokes a **lambda** function at a fixed interval that executes trades based on if there were any recent trading signals stored in the database. (*Note: the interval should be the same as the timeframe the trading strategies trade on.*)
-
-To execute trades, the lambda function connects to the exchange via API, gathering required account data, and places the order(s).
+## AWS Secrets Manager
+- **Function**: Securely stores sensitive information, such as exchange API keys.
+- **Pricing**: $0.30 per month per secret. This is the only paid service we use, and the investment in security is well worth it.
 
 ![trade_automation_system](img/trade_automation_system.png)
+
+# Trade Execution
+In this section, we’ll provide a detailed overview of how our system executes trades and allocates the correct percentage to each strategy, including the two key execution strategies: multi-strategy execution and buy-side boost. We’ll also cover important guidelines to ensure the system operates as intended.
+
+Our system executes trades using **limit orders** because some exchange APIs don't support market orders, and maker fees are often significantly lower than taker fees. However, we make our limit orders behave like market orders by adjusting the order price based on the last traded price of the market, plus or minus a defined **increment percent**, depending on whether it's a buy or sell order. It's important to adjust this **increment percentage** according to your account value to ensure your limit orders function effectively as market orders.
+
+## Portfolio Allocation
+Our system automatically handles portfolio allocation to each strategy based on user-defined percentages set in the `strategy_config.json` file. 
+
+**Important:** Configured percentages should not add up to more than 98%. We reserve 2% of the account to ensure there's always cash available for fees.
+
+## Execution Strategies
+There are two execution strategies available: Multi-Strategy Allocation and Buy-Side Boost.
+
+### Multi-Strategy Allocation
+This execution strategy ensures the defined percentage in `strategy_config.json` is used when executing on the strategy.
+
+**How does it work?**
+- When there are no active trades, it's fairly simple: We take the total account value in USD and multiply it by the specified percentage to determine the allocation for a given strategy.
+- However, when you're already in a trade and need to allocate for the next trade signal, things get a bit more complex: But the idea remains the same—we calculate the total account value in USD and multiply it by the strategy's percentage.
+- The challenge is that to accurately determine the account value, we first need to figure out how much USD was originally allocated to all active trades. This means calculating the account's value before factoring in any unrealized gains. This is handled in our function `get_total_usd()`.
+
+This ensures that our system precisely allocates to each strategy as intended. 
+
+### Buy-Side Boost
+This advanced execution strategy is the most efficient way to allocate capital to multiple strategies. The idea is that instead of only using a portion of your account, you should use all of your account and reallocate as more trades are entered. 
+
+To understand how this works, let's introduce a concept called **trade precedence**. Trade precedence is determined based on the incoming and active trades, meaning we reassess which trade has precedence every time a strategy is triggered to enter the market. The strategy with trade precedence receives the otherwise available capital of your account.
+
+**Otherwise Available Capital** is calculated by summing the percentages in `strategy_config.json` assigned to strategies that are not currently active.
+
+**Important:** Ensure that configured percentages are not the same so trade precedence can be correctly determined.
+
+Let’s walk through an example to clarify this concept. Suppose we have defined the following allocation percentages for three strategies:
+- BTC/USD: 0.2
+- ETH/USD: 0.25
+- SOL/USD: 0.5
+
+Now suppose we have the following sequence of trades: 
+1. BTC/USD Buy
+2. ETH/USD Buy
+3. BTC/USD Sell & ETH/USD Sell
+4. BTC/USD Buy & SOL/USD Buy
+5. BTC/USD Sell & SOL/USD Sell 
+
+At step 1, since BTC/USD is the only incoming trade and we have no active trades, it receives trade precedence. Because BTC/USD has trade precedence, we allocate both the BTC/USD percentage and the Otherwise Available Capital percentage, which is 0.2 + 0.75 = 0.95. Therefore, we buy BTC/USD with 95% of our account value.
+
+At step 2, we need to determine which trade has precedence between the incoming trade (ETH/USD) and the active trade (BTC/USD). Since ETH/USD has a higher allocation percentage than BTC/USD, it receives trade precedence. To adjust, we sell a portion of our BTC/USD position so that its allocation matches the defined percentage of 0.2.
+
+After the sell, we allocate 0.25 to ETH/USD, plus the Otherwise Available Capital percentage, which is now 0.5. This means we purchase ETH/USD using 75% of our total account value. Our portfolio is now composed of 20% BTC and 75% ETH.
+
+At step 3, we sell our entire BTC/USD and ETH/USD positions.
+
+At step 4, we determine trade precedence between the two incoming trades (BTC/USD and SOL/USD). SOL/USD receives precedence due to its higher defined allocation percentage. As a result, we allocate 20% of our portfolio to BTC/USD and 75% to SOL/USD.
+
+At step 5, we sell our entire positions in BTC/USD and SOL/USD.
+
+**Important:** To ensure buy-side boost functions as intended, avoid having ties between the defined allocation percentages in `strategy_config.json`.
+
+# Usage
+In this section, I’ll guide you through the essential user configurations, including setting your portfolio allocation split, choosing your execution strategy, and reviewing guidelines to ensure the system functions as intended.
+
+## Allocation Split
+First, open `strategy_config.json` and adjust the values next to each percentage to reflect your desired allocation split. Ensure the top-level key matches the symbol in TradingView. For example, if your strategy is based on SOLUSDT in TradingView, the key should also be SOLUSDT.
+
+## Increment Percent
+Next, open `app.py` and locate lines 28 and 56, where a parameter called `increment_pct` is set to a float. Adjust this value as needed to ensure your limit orders are filled promptly (e.g. 0.001 is .1%).
+
+**Line 28:**
+
+`order = trade_execution.execute_long_stop(exchange, trade_out, increment_pct=0.001)`
+
+**Line 56:**
+
+`orders = trade_execution.buy_side_boost(exchange, trades, increment_pct=0.001)`
+
+## Execution Strategy
+To switch between multi-strategy allocation and buy-side boost, edit line 56 in `app.py` as follows:
+
+**Multi-Strategy Allocation:**
+
+`orders = trade_execution.multi_strategy_allocation(exchange, trades, increment_pct=0.001)`
+
+**Buy-Side Boost:** 
+
+`orders = trade_execution.buy_side_boost(exchange, trades, increment_pct=0.001)`
+
+## Important Guidelines
+This section is to go over important guidelines to ensure the system works as intended.
+- The account should be **solely** used for trading automated strategies **on the same timeframe**. 
+- Ensure all trades are closed in the account before activating the system, as open trades will disrupt account value calculations.
+- For similar reasons as above, avoid using this account for external crypto transfers. All strategies must start fresh, either with no trades at all or with the last trade fully closed.
+- Configured percentages in `strategy_config.json` should not exceed 98%, leaving 2% available for fees.
+- If using Buy-Side Boost, ensure that configured percentages in `strategy_config.json` are not the same, allowing for proper calculation of trade precedence.
 
 # Getting Started
 
