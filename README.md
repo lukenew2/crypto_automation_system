@@ -119,38 +119,61 @@ This section is to go over important guidelines to ensure the system works as in
 - If using Buy-Side Boost, ensure that configured percentages in `strategy_config.json` are not the same, allowing for proper calculation of trade precedence.
 
 # Getting Started
+To set up the automation system on your own machine, we'll follow these steps:
+1. AWS Account Setup & Configuration
+2. Clone the Repository & Install Dependencies
+3. Create DynamoDB Table
+4. Obtain & Store API Keys
+5. Assign Permissions
+6. Deploy the System
+7. Perform Testing
+8. Configure TradingView Strategies
+## AWS Account Setup & Configuration
+To begin, you'll need to create an AWS account and set up the AWS CLI to interact with your account via the command line. For a detailed walkthrough, refer to this guide: [AWS Account & CLI Setup](https://youtu.be/CjKhQoYeR4Q?si=yrVoZYg3SKRq28og).
+# Clone the Repository & Install Dependencies 
+To get started, clone the repository to your local workspace by running the following command:
 
-## Project setup
-
-To get started go ahead and clone the repository in your local workspace by running the following command:
-
-```bash
-$ git clone https://github.com/lukenew2/crypto_auto_trading.git
+```shell
+$ git clone https://github.com/lukenew2/crypto_automation_system.git
 ```
 
-Navigate your terminal inside the project directory and create a new virtual environment with python 3.10 and install both requirements.txt files.  
+Next, navigate to the project directory in your terminal, create a virtual environment using Python 3.10, and install the required dependencies from both `requirements.txt` files:
 
-- requirements.txt - Installs chalice and pytest used for application deployment and unit testing respectively.
-- crypto_bot/requirements.txt - Installs packages used within application.
+- `requirements.txt`: Installs Chalice for deployment and Pytest for unit testing.
+- `crypto_bot/requirements.txt`: Installs packages used within the application.
 
-```bash
+```shell
 $ python3.10 -m venv venv310
 $ . venv310/bin/activate
 $ pip install -r requirements.txt
 $ pip install -r crypto_bot/requirements.txt
 ```
+With the dependencies installed, you're ready to create your AWS resources and configure the automation system.
+## Create DynamoDB Table
+You can create a DynamoDB table using either the AWS Console or the AWS CLI. 
 
-From here on forward I’m assuming that you have the AWS CLI set up properly so we can create your AWS resources from the command line.  
+**Important:** Ensure both Write Capacity Units (WCUs) and Read Capacity Units (RCUs) are set to 5. This keeps you well within the AWS free tier limit of 25 WCUs and RCUs per month.
+### Option 1: Using the AWS Management Console
+1. **Sign in to the AWS Management Console**  
+    - Go to the [DynamoDB dashboard](https://console.aws.amazon.com/dynamodb).
+2. **Create a New Table**
+    - Click on **"Create table"**.
+    - Enter a **Table name**. For example, `crypto_automation_table`.
+    - Set the **Partition key** to `ticker` and the **Range key** to `create_ts`. Both should be set to **String** as their data type.
+3. **Adjust Read/Write Capacity Settings**
+    - Scroll down to **Capacity mode**.
+    - Select **"Provisioned"**.
+    - Set both **Read capacity units (RCU)** and **Write capacity units (WCU)** to **5**
+4. **Create the Table**
+    - Click **Create table** at the bottom of the page.
+    - Your table will be created and ready for use in your automation system.
 
-## DynamoDB
-
-First, you’ll create your database that will store incoming trade signals from TradingView.  Make note of the **table name.** This field can be changed to whatever you want.  For example, if you want to have separate tables for dev/prod you can add a -dev or -prod to the end of the name.
-
-If you’re on Linux/OS run the following in the terminal:
-
-```bash
+---
+### Option 2: Using the AWS CLI
+You can also create the DynamoDB table via the AWS CLI with the following command. This will create a table named `crypto_automation_table` with the partition key `ticker` and the range key `create_ts`, both of which are set to String (`S`), and WCUs/RCUs set to 5.
+```
 $ aws dynamodb create-table \
-    --table-name tradesignals \
+    --table-name crypto_automation_table \
     --attribute-definitions \
         AttributeName=ticker,AttributeType=S \
         AttributeName=create_ts,AttributeType=S \
@@ -162,246 +185,49 @@ $ aws dynamodb create-table \
     --table-class STANDARD
 ```
 
-Or if you’re on Windows:
+---
 
-```bash
-$ aws dynamodb create-table ^
-    --table-name tradesignals ^
-    --attribute-definitions ^
-        AttributeName=ticker,AttributeType=S ^
-        AttributeName=create_ts,AttributeType=S ^
-    --key-schema ^
-        AttributeName=ticker,KeyType=HASH ^
-        AttributeName=create_ts,KeyType=RANGE ^
-    --provisioned-throughput ^
-        ReadCapacityUnits=5,WriteCapacityUnits=5 ^
-    --table-class STANDARD
-```
+Make sure to note the table name because we'll need it later to reference the table in your automation system.
+## Obtain & Store API Keys
+To connect your exchange to the automation system, follow your exchange's instructions for generating API keys. These keys usually consist of an **API Key** and a **Secret Key**. Make sure to generate the necessary permissions for trading (Read and Trade, but typically leave Withdraw disabled for security).
 
-You should get an output that looks something like this:
+Once you have your API keys, securely store them in **AWS Secrets Manager** by following these steps:
+### Step 1: Access AWS Secrets Manager
+1. Log in to your **AWS Management Console**.
+2. Navigate to **Secrets Manager** by searching for it in the search bar.
+### Step 2: Create a New Secret
+1. Click **Store a new secret**.
+2. Select **Other type of secret**.
+3. Enter your **API Key** and **Secret Key** as key-value pairs:
+    - Key: `api-key`, Value: your API key
+    - Key: `api-secret`, Value: your secret key
+4. Click **Next**.
+### Step 3: Name and Configure the Secret
+1. Give your secret a name, such as `exchange_api_keys`.
+2. Optionally, add a description to identify it.
+### Step 4: Store the Secret
+1. Click **Next** to configure any additional settings or leave them as default.
+2. Finally, click **Store** to securely save your API keys.
 
-```json
-{
-    "TableDescription": {
-        "AttributeDefinitions": [
-            {
-                "AttributeName": "ticker",
-                "AttributeType": "S"
-            },
-            {
-                "AttributeName": "create_ts",
-                "AttributeType": "S"
-            }
-        ],
-        "TableName": "tradesignals",
-        "KeySchema": [
-            {
-                "AttributeName": "ticker",
-                "KeyType": "HASH"
-            },
-            {
-                "AttributeName": "create_ts",
-                "KeyType": "RANGE"
-            }
-        ],
-        "TableStatus": "CREATING",
-        "CreationDateTime": "2023-03-29T12:11:43.379000-04:00",
-        "ProvisionedThroughput": {
-            "NumberOfDecreasesToday": 0,
-            "ReadCapacityUnits": 5,
-            "WriteCapacityUnits": 5
-        },
-        "TableSizeBytes": 0,
-        "ItemCount": 0,
-        "TableArn": "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals",
-        "TableId": "60abf404-1839-4917-a89b-a8b0ab2a1b87",
-        "TableClassSummary": {
-            "TableClass": "STANDARD"
-        }
-    }
-}
-```
-
-Take note of the **TableArn** field and copy the value to your clipboard.  Now, open the file *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the TableArn value inside the **DynamoDB** Resource field.  It should look something like this:
-
-```json
-      {
-        "Action": [
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:GetItem",
-          "dynamodb:Scan",
-          "dynamodb:Query"
-        ],
-        "Resource": [
-          "arn:aws:dynamodb:us-east-1:111122223333:table/tradesignals"
-        ],
-        "Effect": "Allow"
-      },
-```
-
-This gives your automation system permission to read/write to the database so whenever TradingView sends signals to your application you will be able to write the signals to the table.
-
-Next, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste the table name in the field **TABLE_NAME**. If you’re creating two tables, one for dev/prod, you would put the respective name in the respective stage.  Your file should look something like this:
-
-```json
-{
-  "version": "2.0",
-  "app_name": "crypto_bot",
-  "environment_variables": {
-    "EXCHANGE_NAME": "gemini"
-  },
-  "stages": {
-    "dev": {
-      "api_gateway_stage": "dev",
-      "autogen_policy": false,
-      "iam_policy_file": "policy-dev.json",
-      "environment_variables": {
-        "TABLE_NAME": "tradesignals-dev",
-        "SECRET_NAME": "YOUR-API-SECRET",
-        "SANDBOX": "True"
-      }
-    },
-    "prod": {
-      "api_gateway_stage": "prod",
-      "autogen_policy": false,
-      "iam_policy_file": "policy-prod.json",
-      "environment_variables": {
-        "TABLE_NAME": "tradesignals-prod",
-        "SECRET_NAME": "YOUR-API-SECRET",
-        "SANDBOX": "False"
-      }
-    }
-  }
-}
-```
-
-And boom!  You’ve created your DynamoDB table and given your application the required permissions and configurations.
-
-**Developer Note**: If you’re using the dev environment, you will also need to modify the policy-dev.json file in a similar way as we did the policy-prod.json file above.
-
-## Generate API Keys
-
-Next, you need to give your application access to your trading account.  You do this by generating API keys on your exchange, storing those keys in AWS Secrets Manager, and giving your application sufficient permission to retrieve said keys.   
-
-Generating API keys is different for every exchange.  For instructions, google how to generate API keys on your exchange.  **Important** - your keys only need sufficient permissions to view account balances and create orders.  It is best practice to give your keys minimum permissions required.  Once you have your keys store them in a safe place.  
-
-## Secrets Manager
-
-Now that you have your API keys for your exchange, You’ll securely store them in AWS Secrets Manager and give your application permission to retrieve them.  
-
-1. Open the Secrets Manager console at  https://console.aws.amazon.com/secretsmanager/
-2. Choose **Store a new secret**.
-3. On the **Choose secret type** page, do the following:
-    1. For **Secret type**, choose **Other type of secret**.
-    2. In **Key/value pairs**, enter your secret in JSON **Key/value** pairs as shown below.
+Be sure to take note of the secret name because in the next section we’ll configure the automation system to access and interact with our AWS resources.
+## Assign Permissions
+Next, we’ll configure the automation system to interact with your newly created AWS resources. Follow these steps:
+1. Open the file located at `./crypto_bot/.chalice/config.json`.
+1. On **line 23**, replace `"YOUR_TABLE_NAME"` with the name of your DynamoDB table name. It should look like this:
     
-    ```json
-    {
-        "api-key": "YOUR-API-KEY",
-        "api-secret": "YOUR-API-SECRET"
-    }
-    ```
+    `"TABLE_NAME": "crypto_automation_table",`
+	
+1. On **line 24**, replace `"YOUR_SECRET_NAME"` with the name of the secret that stores your API keys. It should look like this:
     
-    You do not need to change anything else on this page.  Choose next.
-    
-4. On the **Configure secret** page, do the following:
-    1. Enter a descriptive **Secret name** and **Description**. Secret names must contain 1-512 Unicode characters.  Take note of the secret name.  We will use it later.
-    2. Choose next
-5. On the **Review** page, review your secret details, and then choose **Store**.
-    
-    Secrets Manager returns to the list of secrets. If your new secret doesn't appear, choose the refresh button.
-    
-6. Click on your newly created secret and copy the **Secret ARN** to your clipboard.  Open *crypto_automation_system/crypto_bot/.chalice/policy-prod.json* and paste the Secret ARN value inside the **Secrets Manager Resource field**.  It should look something like this:
-    
-    ```json
-          {
-            "Action": [
-              "secretsmanager:GetSecretValue"
-            ],
-            "Resource": [
-              "arn:aws:secretsmanager:us-east-1:111122223333:secret:secretname"
-            ],
-            "Effect": "Allow"
-          }
-    ```
-    
-7. Now, open *crypto_automation_system/crypto_bot/.chalice/config.json* and paste your secret name in the field **SECRET_NAME** within the prod stage.  It should look something like this:
-    
-    ```json
-    {
-      "version": "2.0",
-      "app_name": "crypto_bot",
-      "environment_variables": {
-        "EXCHANGE_NAME": "gemini"
-      },
-      "stages": {
-        "dev": {
-          "api_gateway_stage": "dev",
-          "autogen_policy": false,
-          "iam_policy_file": "policy-dev.json",
-          "environment_variables": {
-            "TABLE_NAME": "tradesignals",
-            "SECRET_NAME": "secretname-dev",
-            "SANDBOX": "True"
-          }
-        },
-        "prod": {
-          "api_gateway_stage": "prod",
-          "autogen_policy": false,
-          "iam_policy_file": "policy-prod.json",
-          "environment_variables": {
-            "TABLE_NAME": "tradesignals",
-            "SECRET_NAME": "secretname-prod",
-            "SANDBOX": "False"
-          }
-        }
-      }
-    }
-    ```
-    
+    `"SECRET_NAME": "exchange_api_keys",`
 
-And Kaboom!  You’ve created a secret to securely store your exchange’s API keys and gave your application sufficient permissions to access the keys.  
+**Note:** This file defines two stages: `prod` and `dev`. The `dev` stage is used for development and connects to your exchange’s sandbox environment. In this guide, we’ll only focus on the `prod` stage.
+## Deploy the System
+With your automation system set up and configured, the next step is to deploy the system using AWS Chalice. Chalice simplifies the process of deploying Python applications to AWS Lambda, allowing you to create and manage serverless applications easily.
 
-**Developer Note:** Most exchanges offer a sandbox environment that provides the same functionality as the actual exchange to enable testing in your application without affecting your actual account.  If you have API keys for your exchange’s sandbox, you can create another secret in AWS Secrets Manager to store the sandbox’s API keys.  Copy the Secret Name within the dev stage of our config.json file and the Secret ARN in the policy-dev.json file.
+Before deploying, ensure you're in the root directory of your project (where your `crypto_bot` folder is located), and run the following command:
 
-## Deployment
-
-Open *crypto_automation_system/crypto_bot/chalicelib/strategy_config.json* and adjust how much of your portfolio you want to allocate to each strategy by adjusting the “**percentage**” field to your desired allocation.  (**Important**: the values must not add to more than 0.98 to ensure you have enough for fees).
-
-```json
-{
-    "BTCUSD": {
-        "symbol": "BTC/USD",
-        "currency": "BTC",
-        "percentage": 0.20,
-        "stop_loss": 0.03
-    },
-    "ETHUSD": {
-        "symbol": "ETH/USD",
-        "currency": "ETH",
-        "percentage": 0.25,
-        "stop_loss": 0.03
-    },
-    "ADAUSD": {
-        "symbol": "ADA/USD",
-        "currency": "ADA",
-        "percentage": 0,
-        "stop_loss": 0.20
-    },
-    "SOLUSD": {
-        "symbol": "SOL/USD",
-        "currency": "SOL",
-        "percentag*": 0.53,
-        "stop_loss": 0.066
-    }
-}
-```
-
-To deploy, navigate your terminal inside the crypto_bot directory run `chalice deploy --stage prod`:
-
-```bash
+```shell
 $ chalice deploy --stage prod
 Creating deployment package.
 Creating IAM role: crpyto_bot-prod
@@ -411,93 +237,20 @@ Resources deployed:
   - Lambda ARN: arn:aws:lambda:us-west-2:12345:function:crpyto_bot-prod
   - Rest API URL: https://abcd.execute-api.us-west-2.amazonaws.com/api/
 ```
-Make note of the Rest API URL.  You will need it to setup TradingView to send alerts to your application.
+This will package and deploy the entire application to AWS. During the deployment process, Chalice will:
 
-If you need to delete your application for whatever reason you can run `chalice delete --stage prod`:
-```bash
+- Deploy your application to **AWS Lambda**.
+- Set up an **API Gateway**.
+- Assign the appropriate permissions based on your `config.json` file.
+- Deploy the resources associated with the production environment (`prod` stage).
+
+If you need to delete your application at any point, you can use the following command:
+
+```shell
 $ chalice delete --stage prod
 Deleting Rest API: abcd4kwyl4
 Deleting function aws:arn:lambda:region:123456789:crpyto_bot-prod
 Deleting IAM Role crpyto_bot-prod
 ```
-
-## Testing
-
-In this part, you will test your two deployed Lambda functions:
-
-1. **crypto_bot-prod**: A REST API with a single route, **receive_trade_signals**.
-2. **crypto_bot-prod-execute_trade_signals**: Executes trade signals stored in the database.
-
-### Testing the REST API
-
-To test the REST API, follow these steps:
-
-1. **Prepare the Testing Tool**: Use a tool like Insomnia or Postman to send HTTPS requests to your endpoint. Set the request type to POST.
-  
-2. **Copy the Endpoint URL**: Your endpoint URL should look similar to `https://abcd.execute-api.us-west-2.amazonaws.com/api/receive_trade_signals`. Copy this URL and paste it into your testing tool.
-
-3. **Create a JSON Body**: Copy and paste the following JSON into your request's body:
-
-```json
-{
-  "time": "2024-04-04T16:00:02Z",
-  "ticker": "BTCUSD",
-  "order_action": "buy",
-  "order_price": "67656.77",
-  "order_comment": "long"
-}
-```
-
-4. **Send the Request**: Send the POST request to the endpoint.
-
-5. **Check CloudWatch Logs**: In the AWS Management Console, go to CloudWatch Logs and select the **crypto-bot-prod** log group. Look for a log detailing the process of writing the trade signal to your database.
-
-### Testing the Execution of Trade Signals
-
-To test the function that executes trade signals, follow these steps:
-
-1. **Navigate to Lambda Functions**: In the AWS Management Console, search for **Lambda**. Then, in the left sidebar, select **Functions**. You should see two functions:
-    - **crypto_bot-prod**: Writes incoming trade signals to your database.
-    - **crypto_bot-prod-execute_trade_signals**: Executes trade signals stored in the database.
-2. **Choose the Function**: Select the **crypto_bot-prod-execute_trade_signals** function and then choose **Test**.
-3. **Create a New Event**: Select **Create new event**.
-4. **Input Event JSON**: In the **Event JSON** editor, paste the following JSON:
-
-```json
-{
-  "id": "9dbbc12b-0e1a-4c90-9929-e5475c68e9e4",
-  "detail-type": "Scheduled Event",
-  "source": "aws.events",
-  "account": "123456789012",
-  "time": "2019-10-08T16:53:06Z",
-  "region": "us-east-1",
-  "resources": [
-    "arn:aws:lambda:us-east-1:111122223333:function:crypto_bot-prod-execute_trade_signals"
-  ],
-  "detail": {},
-  "version": ""
-}
-```
-
-5. **Run the Test**: Choose **Test** to execute the function. After a few seconds, a green checkmark should appear, indicating successful execution.
-6. **Check CloudWatch Logs**: For more details about the test, go to CloudWatch Logs and look at the logs for the function.
-
-## TradingView Web-hooks
-
-Last step is to configure your strategy in TradingView to send alerts to your new REST API Endpoint.  Create a new alert off your strategy and in the message paste the JSON below:
-
-```json
-{
-    "time": "{{timenow}}",
-    "ticker": "{{ticker}}",
-    "order_action": "{{strategy.order.action}}",
-    "order_price": "{{strategy.order.price}}",
-    "order_comment": "{{strategy.order.comment}}"
-}
-```
-
-And then in the notifications select Webhook URL and paste your REST API’s endpoint with receive_trade_signals after the slash.  It should look something like this:
-
-```
-https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals
-```
+## Perform Testing
+## Configure TradingView Strategies
