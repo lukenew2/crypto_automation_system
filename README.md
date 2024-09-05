@@ -130,7 +130,7 @@ To set up the automation system on your own machine, we'll follow these steps:
 8. Configure TradingView Strategies
 ## AWS Account Setup & Configuration
 To begin, you'll need to create an AWS account and set up the AWS CLI to interact with your account via the command line. For a detailed walkthrough, refer to this guide: [AWS Account & CLI Setup](https://youtu.be/CjKhQoYeR4Q?si=yrVoZYg3SKRq28og).
-# Clone the Repository & Install Dependencies 
+## Clone the Repository & Install Dependencies 
 To get started, clone the repository to your local workspace by running the following command:
 
 ```shell
@@ -168,7 +168,6 @@ You can create a DynamoDB table using either the AWS Console or the AWS CLI.
     - Click **Create table** at the bottom of the page.
     - Your table will be created and ready for use in your automation system.
 
----
 ### Option 2: Using the AWS CLI
 You can also create the DynamoDB table via the AWS CLI with the following command. This will create a table named `crypto_automation_table` with the partition key `ticker` and the range key `create_ts`, both of which are set to String (`S`), and WCUs/RCUs set to 5.
 ```
@@ -184,8 +183,6 @@ $ aws dynamodb create-table \
         ReadCapacityUnits=5,WriteCapacityUnits=5 \
     --table-class STANDARD
 ```
-
----
 
 Make sure to note the table name because we'll need it later to reference the table in your automation system.
 ## Obtain & Store API Keys
