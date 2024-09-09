@@ -250,4 +250,81 @@ Deleting function aws:arn:lambda:region:123456789:crpyto_bot-prod
 Deleting IAM Role crpyto_bot-prod
 ```
 ## Perform Testing
+In this section, we’ll test the REST API endpoint to ensure trade signals can be written to the database. Then, we’ll test the Lambda function by invoking it and checking for the appropriate messages in the logs.
+### Testing the REST API
+
+To confirm that the REST API is functioning properly, we’ll send a test request using **Insomnia**, a tool for testing APIs.
+
+#### Step 1: Set Up Insomnia
+1. Download and install **Insomnia** if you don’t have it installed already.
+2. Open Insomnia and create a new **Request**.
+3. Select **POST** as the request type and enter your **API Gateway URL** adding `receive_trade_signals` to the end (e.g., `https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals`).
+
+#### Step 2: Configure the Request Body
+1. Under the **Body** tab in Insomnia, select **JSON** and input a test payload. For example:
+```JSON
+{
+	"time": "2024-08-10T02:30:02Z",
+	"ticker": "BTCUSD",
+	"order_action": "buy",
+	"order_price": "67656.77",
+	"order_comment": "long"
+}
+```
+
+2. Make sure your payload structure matches what the API expects (in this case, a trade signal).
+
+#### Step 3: Send the Request
+1. Click **Send** in Insomnia to submit the request.
+2. Check the response to ensure the API is accepting and processing the request properly. A successful response might return a `200 OK` status, confirming that the trade signal was sent to the system.
+
+#### Step 4: Verify the Data in DynamoDB
+1. Log in to the **AWS Console** and navigate to **DynamoDB**.
+2. Open your table and check the entries to confirm that the trade signal  has been written to the database.
+### Testing the Lambda Function
+Now, we’ll test the Lambda function directly to ensure that it processes the trade signals correctly.
+
+#### Step 1: Invoke the Lambda Function**
+1. Open the **AWS Console** and go to **AWS Lambda**.
+2. Find your Lambda function (e.g., `crypto_bot-prod-execute_trade_signals`) and click on it.
+3. Click **Test** to create a test event, using a similar payload as the one below:
+```JSON
+{
+  "id": "9dbbc12b-0e1a-4c90-9929-e5475c68e9e4",
+  "detail-type": "Scheduled Event",
+  "source": "aws.events",
+  "account": "123456789012",
+  "time": "2019-10-08T16:53:06Z",
+  "region": "us-west-2",
+  "resources": [
+    "arn:aws:lambda:us-west-2:12345:function:crpyto_bot-prod-execute_trade_signals"
+  ],
+  "detail": {},
+  "version": ""
+}
+```
+4. Click **Test** again to invoke the function.
+
+#### Step 2: Check the Logs**
+1. In the **AWS Console**, navigate to **CloudWatch** and locate the log group for your Lambda function.
+2. Review the logs and confirm that the following message appears (time shouldn't match):  
+    `"crypto_bot - INFO - No trade signals at 2024-09-09 16:00:00+00:00"`.
 ## Configure TradingView Strategies
+Finally, we can configure our TradingView strategies to send webhooks to our Rest API.
+### Step 1: Get Your API Endpoint
+Copy your **API Gateway URL** from Chalice adding `receive_trade_signals` to the end (e.g., `https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals`).
+### Step 2: Set Up a TradingView Alert
+1. Open your strategy in **TradingView**.
+2. Click the **Alerts** icon and select **Create Alert**.
+### Step 3: Configure Webhook & Message
+1. In the **Webhook URL** field, paste your **API Gateway URL**.
+2. Set the **Message** field to the following JSON:
+```JSON
+{
+    "time": "{{timenow}}",
+    "ticker": "{{ticker}}",
+    "order_action": "{{strategy.order.action}}",
+    "order_price": "{{strategy.order.price}}",
+    "order_comment": "{{strategy.order.comment}}"
+}
+```
