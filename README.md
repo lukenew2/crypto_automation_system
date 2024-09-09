@@ -305,18 +305,18 @@ Now, we’ll test the Lambda function directly to ensure that it processes the t
 ```
 4. Click **Test** again to invoke the function.
 
-#### Step 2: Check the Logs**
+#### Step 2: Check the Logs
 1. In the **AWS Console**, navigate to **CloudWatch** and locate the log group for your Lambda function.
 2. Review the logs and confirm that the following message appears (time shouldn't match):  
     `"crypto_bot - INFO - No trade signals at 2024-09-09 16:00:00+00:00"`.
 ## Configure TradingView Strategies
 Finally, we can configure our TradingView strategies to send webhooks to our Rest API.
-### Step 1: Get Your API Endpoint
+#### Step 1: Get Your API Endpoint
 Copy your **API Gateway URL** from Chalice adding `receive_trade_signals` to the end (e.g., `https://abcd.execute-api.us-west-2.amazonaws.com/prod/receive_trade_signals`).
-### Step 2: Set Up a TradingView Alert
+#### Step 2: Set Up a TradingView Alert
 1. Open your strategy in **TradingView**.
 2. Click the **Alerts** icon and select **Create Alert**.
-### Step 3: Configure Webhook & Message
+#### Step 3: Configure Webhook & Message
 1. In the **Webhook URL** field, paste your **API Gateway URL**.
 2. Set the **Message** field to the following JSON:
 ```JSON
