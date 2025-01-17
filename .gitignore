@@ -1,3 +1,8 @@
+# Chalice deployment files
+.chalice/deployments/
+.chalice/deployed/
+.chalice/venv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -5,6 +10,9 @@ __pycache__/
 
 # C extensions
 *.so
+
+# Ruff
+.ruff_cache
 
 # Distribution / packaging
 .Python

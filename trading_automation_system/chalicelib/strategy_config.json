@@ -1,0 +1,22 @@
+{
+    "BTCUSD": {
+        "exchange_symbol": "BTC/USD",
+        "base_asset": "BTC",
+        "percentage": 0.20
+    },
+    "ETHUSD": {
+        "exchange_symbol": "ETH/USD",
+        "base_asset": "ETH",
+        "percentage": 0.25
+    },
+    "ADAUSD": {
+        "exchange_symbol": "ADA/USD",
+        "base_asset": "ADA",
+        "percentage": 0
+    },
+    "SOLUSDT": {
+        "exchange_symbol": "SOL/USD",
+        "base_asset": "SOL",
+        "percentage": 0.53
+    }
+}

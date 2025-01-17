@@ -1,2 +1,4 @@
 chalice==1.29.0
-pytest==8.1.1
+boto3==1.35.70
+ccxt==4.4.34
+pytest==8.3.3
