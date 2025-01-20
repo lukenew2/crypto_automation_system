@@ -1,6 +1,33 @@
 # Crypto Automation System
 Welcome to my trading automation system! Designed specifically for traders with strategies developed in TradingView, this system streamlines the transition from manual to automated execution. By eliminating emotional bias, ensuring consistent execution, and maintaining constant connectivity, our system empowers you to optimize your trading strategies with greater efficiency and confidence—all while keeping your private keys secure and minimizing costs to less than $1 a month.
 
+## Table of Contents
+- [Crypto Automation System](#crypto-automation-system)
+- [System Design](#system-design)
+  - [TradingView](#tradingview)
+  - [AWS Chalice](#aws-chalice)
+  - [AWS DynamoDB](#aws-dynamodb)
+  - [AWS Secrets Manager](#aws-secrets-manager)
+- [Trade Execution](#trade-execution)
+  - [Portfolio Allocation](#portfolio-allocation)
+  - [Execution Strategies](#execution-strategies)
+    - [Multi-Strategy Allocation](#multi-strategy-allocation)
+    - [Buy-Side Boost](#buy-side-boost)
+- [Usage](#usage)
+  - [Allocation Split](#allocation-split)
+  - [Increment Percent](#increment-percent)
+  - [Execution Strategy](#execution-strategy)
+  - [Important Guidelines](#important-guidelines)
+- [Getting Started](#getting-started)
+  - [AWS Account Setup & Configuration](#aws-account-setup--configuration)
+  - [Clone the Repository & Install UV](#clone-the-repository--install-uv)
+  - [Create DynamoDB Table](#create-dynamodb-table)
+  - [Obtain & Store API Keys](#obtain--store-api-keys)
+  - [User Configurations](#user-configurations)
+  - [Deploy the System](#deploy-the-system)
+  - [Perform Testing](#perform-testing)
+  - [Configure TradingView Strategies](#configure-tradingview-strategies)
+  
 # System Design
 So, how does it work? Our system seamlessly integrates four key components: TradingView, AWS Chalice, AWS DynamoDB, and AWS Secrets Manager.
 
@@ -130,25 +157,24 @@ To set up the automation system on your own machine, we'll follow these steps:
 8. Configure TradingView Strategies
 ## AWS Account Setup & Configuration
 To begin, you'll need to create an AWS account and set up the AWS CLI to interact with your account via the command line. For a detailed walkthrough, refer to this guide: [AWS Account & CLI Setup](https://youtu.be/CjKhQoYeR4Q?si=yrVoZYg3SKRq28og).
-## Clone the Repository & Install Dependencies 
-To get started, clone the repository to your local workspace by running the following command:
+## Clone the Repository & Install UV 
+First, install uv - a fast Python package installer and resolver. You can install it using curl:
+
+```shell
+# On macOS or Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# On Windows (PowerShell)
+irm https://astral.sh/uv/install.ps1 | iex
+```
+
+Next, clone the repository:
 
 ```shell
 $ git clone https://github.com/lukenew2/crypto_automation_system.git
 ```
+With the repo cloned and uv installed, you're ready to create your AWS resources and configure the automation system.
 
-Next, navigate to the project directory in your terminal, create a virtual environment using Python 3.10, and install the required dependencies from both `requirements.txt` files:
-
-- `requirements.txt`: Installs Chalice for deployment and Pytest for unit testing.
-- `crypto_bot/requirements.txt`: Installs packages used within the application.
-
-```shell
-$ python3.10 -m venv venv310
-$ . venv310/bin/activate
-$ pip install -r requirements.txt
-$ pip install -r crypto_bot/requirements.txt
-```
-With the dependencies installed, you're ready to create your AWS resources and configure the automation system.
 ## Create DynamoDB Table
 You can create a DynamoDB table using either the AWS Console or the AWS CLI. 
 
@@ -207,25 +233,97 @@ Once you have your API keys, securely store them in **AWS Secrets Manager** by f
 2. Finally, click **Store** to securely save your API keys.
 
 Be sure to take note of the secret name because in the next section we’ll configure the automation system to access and interact with our AWS resources.
-## Assign Permissions
-Next, we’ll configure the automation system to interact with your newly created AWS resources. Follow these steps:
-1. Open the file located at `./crypto_bot/.chalice/config.json`.
-1. On **line 23**, replace `"YOUR_TABLE_NAME"` with the name of your DynamoDB table name. It should look like this:
-    
-    `"TABLE_NAME": "crypto_automation_table",`
-	
-1. On **line 24**, replace `"YOUR_SECRET_NAME"` with the name of the secret that stores your API keys. It should look like this:
-    
-    `"SECRET_NAME": "exchange_api_keys",`
+## User Configurations
+This section will help you customize the `./crypto_bot/.chalice/config.json` file for your crypto trading bot. This configuration file is crucial for connecting your bot to the correct exchange, setting up your trading preferences, and managing your development and production environments.
 
-**Note:** This file defines two stages: `prod` and `dev`. The `dev` stage is used for development and connects to your exchange’s sandbox environment. In this guide, we’ll only focus on the `prod` stage.
+### Development vs Production
+The configuration file defines two separate environments (stages): dev and prod. Here's what each one is for:
+**Development** (dev)
+    - Used for testing and development
+    - Connects to exchange's sandbox/testnet environment
+    - Uses simulated trading with fake money
+    - Perfect for testing new strategies or system changes
+    - Set to "SANDBOX": "True" automatically
+    - You can safely ignore this section if you're only planning to trade with real funds
+**Production** (prod)
+    - Used for real trading with actual funds
+    - Connects to the exchange's main trading environment
+    - Set to "SANDBOX": "False" for live trading
+    - **This is the environment you'll configure for actual trading**
+
+### Global Settings
+```json
+{
+    "version": "2.0",
+    "app_name": "crypto_bot",
+    "environment_variables": {
+        "EXCHANGE_NAME": "YOUR_EXCHANGE_NAME",
+        "QUOTE_CURRENCY": "USD",
+        "INCREMENT_PCT": "0.001"
+    }
+}
+```
+#### How to Configure Global Settings
+1. **EXCHANGE_NAME**: Replace YOUR_EXCHANGE_NAME with your exchange's identifier
+    - For Binance: Use "binance"
+    - For Bybit: Use "bybit"
+    - For Gemini: Use "gemini"
+2. **QUOTE_CURRENCY**: Set this to the currency you'll use for purchasing
+    - Common options: "USD", "USDT", "USDC"
+    - Example: If trading on Binance with USDC, use "USDC"
+3. **INCREMENT_PCT**: This ensures your limit orders are filled promptly
+    - Default is "0.001" (0.1%)
+    - Increase for larger account values
+    - Example: "0.002" for 0.2% increment
+
+### Environment-Specific Settings
+The configuration has two environments: dev and prod. Each environment has its own settings:
+```json
+"stages": {
+    "dev": {
+        "api_gateway_stage": "dev",
+        "autogen_policy": false,
+        "iam_policy_file": "policy-dev.json",
+        "environment_variables": {
+            "TABLE_NAME": "YOUR_TABLE_NAME",
+            "SECRET_NAME": "YOUR_SECRET_NAME",
+            "SANDBOX": "True"
+        }
+    },
+    "prod": {
+        "api_gateway_stage": "prod",
+        "autogen_policy": false,
+        "iam_policy_file": "policy-prod.json",
+        "environment_variables": {
+            "TABLE_NAME": "YOUR_TABLE_NAME",
+            "SECRET_NAME": "YOUR_SECRET_NAME",
+            "SANDBOX": "False"
+        }
+    }
+}
+```
+
+#### How to Configure Environment Settings
+For both dev and prod environments:
+
+1. **TABLE_NAME**: Replace YOUR_TABLE_NAME with your DynamoDB table name
+    - Example: "crypto_trading_signals"
+    - Use different names for dev and prod if you want separate tables
+    - Example dev: "crypto_trading_signals_dev"
+    - Example prod: "crypto_trading_signals_prod"
+2. **SECRET_NAME**: Replace YOUR_SECRET_NAME with your AWS Secrets Manager secret name
+    - Example: "exchange_api_keys"
+    - Use different names for dev and prod environments
+    - Example dev: "exchange_api_keys_dev"
+    - Example prod: "exchange_api_keys_prod"
+
 ## Deploy the System
 With your automation system set up and configured, the next step is to deploy the system using AWS Chalice. Chalice simplifies the process of deploying Python applications to AWS Lambda, allowing you to create and manage serverless applications easily.
 
 Before deploying, ensure you're in the root directory of your project (where your `crypto_bot` folder is located), and run the following command:
 
 ```shell
-$ chalice deploy --stage prod
+$ uv run chalice deploy --stage prod
 Creating deployment package.
 Creating IAM role: crpyto_bot-prod
 Creating lambda function: crpyto_bot-prod
@@ -244,7 +342,7 @@ This will package and deploy the entire application to AWS. During the deploymen
 If you need to delete your application at any point, you can use the following command:
 
 ```shell
-$ chalice delete --stage prod
+$ uv run chalice delete --stage prod
 Deleting Rest API: abcd4kwyl4
 Deleting function aws:arn:lambda:region:123456789:crpyto_bot-prod
 Deleting IAM Role crpyto_bot-prod

@@ -10,7 +10,7 @@
       "dev": {
         "api_gateway_stage": "dev",
         "autogen_policy": false,
-        "iam_policy_file": "policy-dev.json",
+        "iam_policy_file": "policy.json",
         "environment_variables": {
           "TABLE_NAME": "YOUR_TABLE_NAME",
           "SECRET_NAME": "YOUR_SECRET_NAME",
@@ -20,7 +20,7 @@
       "prod": {
         "api_gateway_stage": "prod",
         "autogen_policy": false,
-        "iam_policy_file": "policy-prod.json",
+        "iam_policy_file": "policy.json",
         "environment_variables": {
           "TABLE_NAME": "YOUR_TABLE_NAME",
           "SECRET_NAME": "YOUR_SECRET_NAME",
@@ -28,4 +28,4 @@
         }
       }
     }
-  }
+}

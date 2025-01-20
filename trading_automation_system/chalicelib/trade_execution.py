@@ -372,7 +372,7 @@ def buy_side_boost(
                 if not wait_for_order_fill(exchange, order["id"], wait_seconds=15, max_attempts=4):
                     raise ValueError(f"Failed to fill sell order on {sell_from_symbol} in specified time.")
                 
-                time.sleep(5)
+                time.sleep(5) # Add delay so balance gets updated in exchanges internal system
 
                 account_allocation_dict = exchange.get_account_allocation()
                 print(f"[Trade Debug] Balance after sell: {account_allocation_dict}")
