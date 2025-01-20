@@ -113,7 +113,7 @@ At step 5, we sell our entire positions in BTC/USD and SOL/USD.
 In this section, I’ll guide you through the essential user configurations, including setting your portfolio allocation split, choosing your execution strategy, and reviewing guidelines to ensure the system functions as intended.
 
 ## Allocation Split
-First, open `strategy_config.json` and adjust the values next to each percentage to reflect your desired allocation split. Ensure the top-level key matches the symbol in TradingView. For example, if your strategy is based on SOLUSDT in TradingView, the key should also be SOLUSDT.
+First, open `trading_automation_system/chalicelib/strategy_config.json` and adjust the values next to each percentage to reflect your desired allocation split. Ensure the top-level key matches the symbol in TradingView. For example, if your strategy is based on SOLUSDT in TradingView, the key should also be SOLUSDT.
 
 ## Execution Strategy
 To switch between multi-strategy allocation and buy-side boost, edit line 86 in `app.py` as follows:
@@ -238,7 +238,7 @@ Once you have your API keys, securely store them in **AWS Secrets Manager** by f
 
 Be sure to take note of the secret name because in the next section we’ll configure the automation system to access and interact with our AWS resources.
 ## User Configurations
-This section will help you customize the `./crypto_bot/.chalice/config.json` file for your crypto trading bot. This configuration file is crucial for connecting your bot to the correct exchange, setting up your trading preferences, and managing your development and production environments.
+This section will help you customize the `trading_automation_system/.chalice/config.json` file for your crypto trading bot. This configuration file is crucial for connecting your bot to the correct exchange, setting up your trading preferences, and managing your development and production environments.
 
 ### Development vs Production
 The configuration file defines two separate environments (stages): dev and prod. Here's what each one is for:
