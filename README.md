@@ -115,35 +115,39 @@ In this section, I’ll guide you through the essential user configurations, inc
 ## Allocation Split
 First, open `strategy_config.json` and adjust the values next to each percentage to reflect your desired allocation split. Ensure the top-level key matches the symbol in TradingView. For example, if your strategy is based on SOLUSDT in TradingView, the key should also be SOLUSDT.
 
-## Increment Percent
-Next, open `app.py` and locate lines 28 and 56, where a parameter called `increment_pct` is set to a float. Adjust this value as needed to ensure your limit orders are filled promptly (e.g. 0.001 is .1%).
-
-**Line 28:**
-
-`order = trade_execution.execute_long_stop(exchange, trade_out, increment_pct=0.001)`
-
-**Line 56:**
-
-`orders = trade_execution.buy_side_boost(exchange, trades, increment_pct=0.001)`
-
 ## Execution Strategy
-To switch between multi-strategy allocation and buy-side boost, edit line 56 in `app.py` as follows:
+To switch between multi-strategy allocation and buy-side boost, edit line 86 in `app.py` as follows:
 
 **Multi-Strategy Allocation:**
 
-`orders = trade_execution.multi_strategy_allocation(exchange, trades, increment_pct=0.001)`
+`orders = trade_execution.multi_strategy_allocation(exchange, trades, increment_pct=INCREMENT_PCT)`
 
 **Buy-Side Boost:** 
 
-`orders = trade_execution.buy_side_boost(exchange, trades, increment_pct=0.001)`
+`orders = trade_execution.buy_side_boost(exchange, trades, increment_pct=INCREMENT_PCT)`
 
 ## Important Guidelines
-This section is to go over important guidelines to ensure the system works as intended.
-- The account should be **solely** used for trading automated strategies **on the same timeframe**. 
-- Ensure all trades are closed in the account before activating the system, as open trades will disrupt account value calculations.
-- For similar reasons as above, avoid using this account for external crypto transfers. All strategies must start fresh, either with no trades at all or with the last trade fully closed.
-- Configured percentages in `strategy_config.json` should not exceed 98%, leaving 2% available for fees.
-- If using Buy-Side Boost, ensure that configured percentages in `strategy_config.json` are not the same, allowing for proper calculation of trade precedence.
+For optimal performance, please follow these key guidelines:
+
+### Account Management
+- Dedicate this trading account exclusively to automated strategies operating on the same timeframe
+- Keep your account clean by fully closing all trades for each strategy
+    - A fully closed trade example: Buy 1 SOL → Sell 1 SOL
+    - An incomplete trade example: Buy 1 SOL → Sell 0.5 SOL
+- Avoid manual trading or external transfers in this account, as they can interfere with position tracking
+
+### Portfolio Allocation
+- Keep total strategy allocations at or below 98% in strategy_config.json
+    - The remaining 2% is reserved for trading fees
+    - Example: If you have three strategies, they might be allocated as 40%, 30%, and 28%
+
+### Buy-Side Boost Configuration
+When using Buy-Side Boost, trade priority is determined by:
+1. Highest allocation percentage first
+2. Alphabetical order for strategies with equal allocation
+    - Example: If both "BTC" and "ETH" strategies are allocated 30%, "BTC" takes precedence
+
+**Note**: Accurate position tracking and account value calculations depend on following these guidelines strictly.
 
 # Getting Started
 To set up the automation system on your own machine, we'll follow these steps:
